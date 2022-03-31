@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Viller's Bingo Bongo</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <canvas id="cardCanvas" style="max-width: 500px;"></canvas>
+        <script>
+            /** @var {CanvasRenderingContext2D} cardCanvas */
+            const cardCanvas = document.getElementById('cardCanvas');
+            const cardContext = cardCanvas.getContext('2d');
+            const backgroundImage = document.createElement('img');
+            
+            // Configurable:
+            backgroundImage.src = './background.jpg';
+            const startX = 68;
+            const startY = 330;
+            const tileSize = 169;
+            const tileSpacing = 37;
+            const fontSize = 50;
+
+            // TODO: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/font#loading_fonts_with_the_css_font_loading_api
+
+            backgroundImage.addEventListener('load', () => {
+                cardCanvas.width = backgroundImage.width;
+                cardCanvas.height = backgroundImage.height;
+
+                cardContext.drawImage(backgroundImage, 0, 0);
+
+                for (let tileId = 0; tileId < 25; tileId++) {
+                    const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
+                    const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
+
+                    cardContext.strokeStyle = 'lime';
+                    cardContext.lineWidth = 2;
+                    cardContext.textAlign = 'center';
+                    cardContext.textBaseline = 'top';
+                    cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
+                    cardContext.font = `${fontSize}px 'Fredericka the Great', cursive`;
+                    cardContext.fillText('Stanley Jansen', tileX + (tileSize / 2), tileY, tileSize);
+                    cardContext.fillText('-', tileX + (tileSize / 2), tileY + fontSize, tileSize);
+                    cardContext.fillText('Bah Bah', tileX + (tileSize / 2), tileY + fontSize + fontSize, tileSize);
+                }
+            });
+        </script>
+    </body>
+</html>
