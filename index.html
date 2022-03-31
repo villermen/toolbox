@@ -8,27 +8,37 @@
         <link href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap" rel="stylesheet">
     </head>
     <body>
-        <canvas id="cardCanvas" style="max-width: 500px;"></canvas>
+        <div style="font: 0px 'Fredericka the Great', cursive;">Font loader</div>
+        <canvas id="cardCanvas" style="max-width: 600px;"></canvas>
         <script>
-            /** @var {CanvasRenderingContext2D} cardCanvas */
+            /** @type {HTMLCanvasElement} */
             const cardCanvas = document.getElementById('cardCanvas');
             const cardContext = cardCanvas.getContext('2d');
             const backgroundImage = document.createElement('img');
-            
+
             // Configurable:
-            backgroundImage.src = './background.jpg';
+            backgroundImage.src = 'template.jpg';
             const startX = 68;
             const startY = 330;
             const tileSize = 169;
             const tileSpacing = 37;
-            const fontSize = 50;
+            const fontSize = 24;
 
-            // TODO: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/font#loading_fonts_with_the_css_font_loading_api
+            const options = [
+                'Kabouter Plop - Kabouterdans',
+                'George Baker Selection - Una Paloma Blanca',
+                'Gebroeders Ko - Toeter Op M\'n Waterscooter',
+                'Cyndi Lauper - Girls Just Want to Have Fun',
+                'Five - Everybody Get Up',
+            ];
 
-            backgroundImage.addEventListener('load', () => {
+            // TODO: Vertically center up to 6 rows.
+            // TODO: Split up lines smartfully: - Single non-word characters always get their own line.
+
+            function draw() {
                 cardCanvas.width = backgroundImage.width;
                 cardCanvas.height = backgroundImage.height;
-
+                
                 cardContext.drawImage(backgroundImage, 0, 0);
 
                 for (let tileId = 0; tileId < 25; tileId++) {
@@ -45,6 +55,16 @@
                     cardContext.fillText('-', tileX + (tileSize / 2), tileY + fontSize, tileSize);
                     cardContext.fillText('Bah Bah', tileX + (tileSize / 2), tileY + fontSize + fontSize, tileSize);
                 }
+            }
+
+            backgroundImage.addEventListener('load', () => {
+                document.fonts.ready.then(() => {
+                    if (!document.fonts.check(`0 'Fredericka the Great'`)) {
+                        console.error('Failed to load font!');
+                    }
+
+                    draw();
+                });
             });
         </script>
     </body>
