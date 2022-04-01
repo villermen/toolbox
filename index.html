@@ -35,7 +35,7 @@
             const startY = 330;
             const tileSize = 169;
             const tileSpacing = 37;
-            const fontSize = 24;
+            const fontSize = tileSize / 6;
             let options = [];
 
             /**
@@ -100,7 +100,7 @@
                     cardContext.strokeStyle = 'lime';
                     cardContext.lineWidth = 2;
                     cardContext.textAlign = 'center';
-                    cardContext.textBaseline = 'middle';
+                    cardContext.textBaseline = 'top';
                     cardContext.fillStyle = 'black';
                     cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
                     cardContext.font = `${fontSize}px 'Fredericka the Great', cursive`;
