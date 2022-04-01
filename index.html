@@ -9,12 +9,25 @@
     </head>
     <body>
         <div style="font: 0px 'Fredericka the Great', cursive;">Font loader</div>
+        <form id="bongoForm">
+            <textarea name="options" style="width: 600px; height: 100px;">
+                Kabouter Plop - Kabouterdans
+                George Baker Selection - Una Paloma Blanca
+                Gebroeders Ko - Toeter Op M'n Waterscooter
+                Cyndi Lauper - Girls Just Want to Have Fun
+                Five - Everybody Get Up
+            </textarea><br />
+            <button type="submit">Bongo!</button>
+        </form>
+        <br />
         <canvas id="cardCanvas" style="max-width: 600px;"></canvas>
         <script>
             /** @type {HTMLCanvasElement} */
             const cardCanvas = document.getElementById('cardCanvas');
             const cardContext = cardCanvas.getContext('2d');
             const backgroundImage = document.createElement('img');
+            const bingoOptionsElement = document.getElementById('bingoOptions');
+            const bongoForm = document.getElementById('bongoForm');
 
             // Configurable:
             backgroundImage.src = 'template.jpg';
@@ -23,17 +36,56 @@
             const tileSize = 169;
             const tileSpacing = 37;
             const fontSize = 24;
+            let options = [];
 
-            const options = [
-                'Kabouter Plop - Kabouterdans',
-                'George Baker Selection - Una Paloma Blanca',
-                'Gebroeders Ko - Toeter Op M\'n Waterscooter',
-                'Cyndi Lauper - Girls Just Want to Have Fun',
-                'Five - Everybody Get Up',
-            ];
+            /**
+             * Splits text very subjectively.
+             * 
+             * @param {string} text
+             * @param {number} [maxLines]
+             * @return {string[]}
+             */
+            function splitText(text, maxLines) {
+                let lines = [text.trim()];
+                let linesLeft = maxLines - 1;
 
-            // TODO: Vertically center up to 6 rows.
-            // TODO: Split up lines smartfully: - Single non-word characters always get their own line.
+                // Split standalone separators.
+                const split = text.split(/\s+(\W)\s+/).filter((linePart) => linePart !== '');
+                if (split.length <= maxLines) {
+                    lines = split;
+                }
+
+                while (lines.length < maxLines) {
+                    // Split longest splittable line.
+                    const splitLine = lines
+                        .filter((line) => line.match(/\s/))
+                        .reduce((previous, current) => {
+                            if (previous === null) {
+                                return current;
+                            }
+
+                            return current.length > previous.length ? current : previous;
+                        }, null);
+                    if (splitLine !== null) {
+                        lines = lines.map((line) => {
+                            if (line !== splitLine) {
+                                return line;
+                            }
+
+                            // TODO: Ugly for consecutive small words. Prefer splitting out large words?
+
+                            const matches = line.match(/^(.*?)\s+([^\s]+)$/);
+                            return [matches[1], matches[2]];
+                        }).flat();
+                        continue;
+                    }
+
+                    // No more splits possible. End.
+                    break;
+                }             
+                
+                return lines;
+            }
 
             function draw() {
                 cardCanvas.width = backgroundImage.width;
@@ -48,12 +100,19 @@
                     cardContext.strokeStyle = 'lime';
                     cardContext.lineWidth = 2;
                     cardContext.textAlign = 'center';
-                    cardContext.textBaseline = 'top';
+                    cardContext.textBaseline = 'middle';
+                    cardContext.fillStyle = 'black';
                     cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
                     cardContext.font = `${fontSize}px 'Fredericka the Great', cursive`;
-                    cardContext.fillText('Stanley Jansen', tileX + (tileSize / 2), tileY, tileSize);
-                    cardContext.fillText('-', tileX + (tileSize / 2), tileY + fontSize, tileSize);
-                    cardContext.fillText('Bah Bah', tileX + (tileSize / 2), tileY + fontSize + fontSize, tileSize);
+
+                    if (options.length > 0) {
+                        const lines = splitText(options[tileId % options.length], 6);
+                        let lineY = (tileY + (tileSize / 2) - Math.ceil((lines.length - 1) / 2) * fontSize);
+                        lines.forEach((line) => {
+                            cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
+                            lineY += fontSize;
+                        });    
+                    }
                 }
             }
 
@@ -65,6 +124,16 @@
 
                     draw();
                 });
+            });
+
+            bongoForm.addEventListener('submit', (e) => {
+                e.preventDefault(true);
+                const formData = new FormData(bongoForm);
+                options = formData.get('options')
+                    .split(/\n/)
+                    .map((line) => line.trim())
+                    .filter((line) => line !== '');
+                draw();	
             });
         </script>
     </body>
