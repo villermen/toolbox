@@ -10,24 +10,21 @@
     <body>
         <div style="font: 0px 'Fredericka the Great', cursive;">Font loader</div>
         <form id="bongoForm">
-            <textarea name="options" style="width: 600px; height: 100px;">
-Kabouter Plop - Kabouterdans
-George Baker Selection - Una Paloma Blanca
-Gebroeders Ko - Toeter Op M'n Waterscooter
-Cyndi Lauper - Girls Just Want to Have Fun
-Five - Everybody Get Up
-Bassie & Adriaan - Hallo Vriendjes</textarea><br />
+            <textarea id="bingoOptions" name="options" style="width: 600px; height: 400px;"></textarea><br />
             <button type="submit">Bongo!</button>
         </form>
-        <br />
-        <canvas id="cardCanvas" style="max-width: 600px;"></canvas>
+        <p id="renderError" style="color: red; font-weight: bold;"></p>
+        <div style="width: 600px; resize: horizontal; overflow: scroll;">
+            <canvas id="cardCanvas" style="width: 100%"></canvas>
+        </div>
         <script>
             /** @type {HTMLCanvasElement} */
             const cardCanvas = document.getElementById('cardCanvas');
             const cardContext = cardCanvas.getContext('2d');
             const backgroundImage = document.createElement('img');
-            const bingoOptionsElement = document.getElementById('bingoOptions');
+            const bingoOptions = document.getElementById('bingoOptions');
             const bongoForm = document.getElementById('bongoForm');
+            const renderError = document.getElementById('renderError');
 
             // Configurable:
             backgroundImage.src = 'template.jpg';
@@ -36,7 +33,36 @@ Bassie & Adriaan - Hallo Vriendjes</textarea><br />
             const tileSize = 169;
             const tileSpacing = 37;
             const fontSize = tileSize / 6;
-            let options = [];
+
+            function prefillOptions() {
+                const prefillOptions = [
+                    'Kabouter Plop - Kabouterdans',
+                    'George Baker Selection - Una Paloma Blanca',
+                    'Gebroeders Ko - Toeter Op M\'n Waterscooter',
+                    'Cyndi Lauper - Girls Just Want to Have Fun',
+                    'Five - Everybody Get Up',
+                    'Toy-Box - Tarzan & Jane',
+                    'O-Zone - Dragonstea Din Tei',
+                    'Bassie & Adriaan - Hallo Vriendjes',
+                    'K-otic - Damn (I Think I Love You)',
+                    'Marianne Rosenberg - Ich Bin Wie Du',
+                    'Paul de Leeuw - Vlieg Met Me Mee',
+                    'Wham! - Wake Me Up Before You Go-Go',
+                    'Jody Bernal - Que Si, Que No',
+                    'De Jeugd van Tegenwoordig - Sterrenstof',
+                    'Jason Paige - Pokémon Theme Song',
+                    'André Hazes - Leef',
+                    'AC/DC - Thunderstruck',
+                    '"Weird Al" Yankovic - NOW That\'s What I call Polka!',
+                    'The Swedish Chef - Popcorn',
+                    'Rednex - Cotton Eye Joe',
+                    'Gigi D\'Agostino - L\'Amours Toujours',
+                    'Anita Meyer - Why Tell Me Why',
+                    'Village People - YMCA',
+                    'Vinzzent - Dromendans',
+                ];
+                bingoOptions.value = prefillOptions.join('\n');
+            }
 
             /**
              * Splits text very subjectively.
@@ -95,13 +121,28 @@ Bassie & Adriaan - Hallo Vriendjes</textarea><br />
                 return lines;
             }
 
-            function draw() {
+            function renderBackground() {
                 cardCanvas.width = backgroundImage.width;
                 cardCanvas.height = backgroundImage.height;
                 
                 cardContext.drawImage(backgroundImage, 0, 0);
+            }
+
+            function renderTiles() {
+                renderBackground();
+
+                if (options.length < 24) {
+                    renderError.innerText = `Not enough options! ${options.length} out of 24 required.`;
+                    return;
+                }
+
+                renderError.innerText = '';
 
                 for (let tileId = 0; tileId < 25; tileId++) {
+                    if (tileId === 12) {
+                        continue;
+                    }
+
                     const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
                     const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
 
@@ -116,10 +157,7 @@ Bassie & Adriaan - Hallo Vriendjes</textarea><br />
 
                     if (options.length > 0) {
                         const lines = splitText(options[tileId % options.length], 6);
-                        let lineY = (tileY + (tileSize / 2));
-                        if (lines.length > 1) {
-                            lineY -= (fontSize * (0.5 + Math.floor((lines.length - 1) / 2)));
-                        }
+                        let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
                         lines.forEach((line) => {
                             cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
                             lineY += fontSize;
@@ -134,7 +172,7 @@ Bassie & Adriaan - Hallo Vriendjes</textarea><br />
                         console.error('Failed to load font!');
                     }
 
-                    draw();
+                    renderBackground();
                 });
             });
 
@@ -145,8 +183,10 @@ Bassie & Adriaan - Hallo Vriendjes</textarea><br />
                     .split(/\n/)
                     .map((line) => line.trim())
                     .filter((line) => line !== '');
-                draw();	
+                    renderTiles();	
             });
+
+            prefillOptions();
         </script>
     </body>
 </html>
