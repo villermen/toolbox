@@ -11,12 +11,12 @@
         <div style="font: 0px 'Fredericka the Great', cursive;">Font loader</div>
         <form id="bongoForm">
             <textarea name="options" style="width: 600px; height: 100px;">
-                Kabouter Plop - Kabouterdans
-                George Baker Selection - Una Paloma Blanca
-                Gebroeders Ko - Toeter Op M'n Waterscooter
-                Cyndi Lauper - Girls Just Want to Have Fun
-                Five - Everybody Get Up
-            </textarea><br />
+Kabouter Plop - Kabouterdans
+George Baker Selection - Una Paloma Blanca
+Gebroeders Ko - Toeter Op M'n Waterscooter
+Cyndi Lauper - Girls Just Want to Have Fun
+Five - Everybody Get Up
+Bassie & Adriaan - Hallo Vriendjes</textarea><br />
             <button type="submit">Bongo!</button>
         </form>
         <br />
@@ -46,19 +46,19 @@
              * @return {string[]}
              */
             function splitText(text, maxLines) {
-                let lines = [text.trim()];
+                let lines = [text.replace(/\s+/, ' ').trim()];
                 let linesLeft = maxLines - 1;
 
                 // Split standalone separators.
-                const split = text.split(/\s+(\W)\s+/).filter((linePart) => linePart !== '');
+                const split = text.split(/ (\W) /);
                 if (split.length <= maxLines) {
                     lines = split;
                 }
 
                 while (lines.length < maxLines) {
-                    // Split longest splittable line.
+                    // Split longest splittable line (long enough and cointains space).
                     const splitLine = lines
-                        .filter((line) => line.match(/\s/))
+                        .filter((line) => line.length >= 12 && line.match(/ /) !== null)
                         .reduce((previous, current) => {
                             if (previous === null) {
                                 return current;
@@ -66,16 +66,24 @@
 
                             return current.length > previous.length ? current : previous;
                         }, null);
+
                     if (splitLine !== null) {
                         lines = lines.map((line) => {
                             if (line !== splitLine) {
                                 return line;
                             }
 
-                            // TODO: Ugly for consecutive small words. Prefer splitting out large words?
-
-                            const matches = line.match(/^(.*?)\s+([^\s]+)$/);
-                            return [matches[1], matches[2]];
+                            // Split line into two balanced groups, preferring the first part.
+                            const words = line.split(/ /);
+                            let part1 = words[0];
+                            let part2 = words.slice(1).join(' ');
+                            while (part1.length < part2.length && part2.match(/ /) !== null) {
+                                const part2Words = part2.split(/ /);
+                                part1 += ` ${part2Words[0]}`;
+                                part2 = part2Words.slice(1).join(' ');
+                            }
+                            
+                            return [part1, part2];
                         }).flat();
                         continue;
                     }
@@ -97,17 +105,21 @@
                     const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
                     const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
 
-                    cardContext.strokeStyle = 'lime';
-                    cardContext.lineWidth = 2;
+                    // cardContext.strokeStyle = 'lime';
+                    // cardContext.lineWidth = 2;
+                    // cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
+
                     cardContext.textAlign = 'center';
-                    cardContext.textBaseline = 'top';
+                    cardContext.textBaseline = 'middle';
                     cardContext.fillStyle = 'black';
-                    cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
                     cardContext.font = `${fontSize}px 'Fredericka the Great', cursive`;
 
                     if (options.length > 0) {
                         const lines = splitText(options[tileId % options.length], 6);
-                        let lineY = (tileY + (tileSize / 2) - Math.ceil((lines.length - 1) / 2) * fontSize);
+                        let lineY = (tileY + (tileSize / 2));
+                        if (lines.length > 1) {
+                            lineY -= (fontSize * (0.5 + Math.floor((lines.length - 1) / 2)));
+                        }
                         lines.forEach((line) => {
                             cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
                             lineY += fontSize;
