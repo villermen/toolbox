@@ -9,12 +9,16 @@
     </head>
     <body>
         <div style="font: 0px 'Fredericka the Great', cursive;">Font loader</div>
-        <form id="bongoForm">
-            <textarea id="bingoOptions" name="options" style="width: 600px; height: 400px;"></textarea><br />
-            <button type="submit">Bongo!</button>
-        </form>
-        <p id="renderError" style="color: red; font-weight: bold;"></p>
-        <div style="width: 600px; resize: horizontal; overflow: scroll;">
+        <div style="width: 500px; display: inline-block; vertical-align: top;">
+            <form id="bongoForm">
+                <label for="optionsInput">Options (one per line):</label><br />
+                <textarea id="optionsInput" name="options" style="width: 100%; height: 400px;"></textarea><br />
+                <label for="seedInput">Seed:</label><input type="text" id="seedInput" name="seed" placeholder="random" /><br />
+                <button type="submit">Bongo!</button>
+            </form>
+            <p id="renderError" style="color: red; font-weight: bold;"></p>
+        </div>
+        <div style="margin-left: 10px; width: 500px; resize: horizontal; overflow: scroll; display: inline-block; vertical-align: top;">
             <canvas id="cardCanvas" style="width: 100%"></canvas>
         </div>
         <script>
@@ -22,7 +26,8 @@
             const cardCanvas = document.getElementById('cardCanvas');
             const cardContext = cardCanvas.getContext('2d');
             const backgroundImage = document.createElement('img');
-            const bingoOptions = document.getElementById('bingoOptions');
+            const optionsInput = document.getElementById('optionsInput');
+            const seedInput = document.getElementById('seedInput');
             const bongoForm = document.getElementById('bongoForm');
             const renderError = document.getElementById('renderError');
 
@@ -33,6 +38,43 @@
             const tileSize = 169;
             const tileSpacing = 37;
             const fontSize = tileSize / 6;
+
+            /**
+             * https://stackoverflow.com/a/47593316
+             * 
+             * @param {string} seed
+             * @returns {() => number}
+             */
+            function createRandom(seed) {
+                function xmur3(str) {
+                    let h = 1779033703 ^ str.length;
+                    for (let i = 0; i < str.length; i++) {
+                        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+                        h = h << 13 | h >>> 19;
+                    }
+                    return function() {
+                        h = Math.imul(h ^ (h >>> 16), 2246822507);
+                        h = Math.imul(h ^ (h >>> 13), 3266489909);
+                        return (h ^= h >>> 16) >>> 0;
+                    }
+                }
+                function sfc32(a, b, c, d) {
+                    return function() {
+                        a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; 
+                        let t = (a + b) | 0;
+                        a = b ^ b >>> 9;
+                        b = c + (c << 3) | 0;
+                        c = (c << 21 | c >>> 11);
+                        d = d + 1 | 0;
+                        t = t + d | 0;
+                        c = c + t | 0;
+                        return (t >>> 0) / 4294967296;
+                    }
+                }
+
+                seed = xmur3(seed);
+                return sfc32(seed(), seed(), seed(), seed());
+            }
 
             function prefillOptions() {
                 const prefillOptions = [
@@ -61,7 +103,7 @@
                     'Village People - YMCA',
                     'Vinzzent - Dromendans',
                 ];
-                bingoOptions.value = prefillOptions.join('\n');
+                optionsInput.value = prefillOptions.join('\n');
             }
 
             /**
@@ -69,7 +111,7 @@
              * 
              * @param {string} text
              * @param {number} [maxLines]
-             * @return {string[]}
+             * @returns {string[]}
              */
             function splitText(text, maxLines) {
                 let lines = [text.replace(/\s+/, ' ').trim()];
@@ -128,7 +170,11 @@
                 cardContext.drawImage(backgroundImage, 0, 0);
             }
 
-            function renderTiles() {
+            /**
+             * @param {string[]} options
+             * @param {string|null} seed
+             */
+            function renderTiles(options, seed) {
                 renderBackground();
 
                 if (options.length < 24) {
@@ -137,6 +183,21 @@
                 }
 
                 renderError.innerText = '';
+
+                if (!seed) {
+                    const seedCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                    seed = '';
+                    for (let i = 0; i < 8; i++) {
+                        seed += seedCharacters[Math.floor(Math.random() * seedCharacters.length)]
+                    }
+                }
+                const random = createRandom(seed);
+
+                options = [...options];
+                const shuffledOptions = [];
+                for (let i = 0; i < 24; i++) {
+                    shuffledOptions.push(options.splice(Math.floor(random() * options.length), 1)[0]);
+                }
 
                 for (let tileId = 0; tileId < 25; tileId++) {
                     if (tileId === 12) {
@@ -147,22 +208,27 @@
                     const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
 
                     // cardContext.strokeStyle = 'lime';
-                    // cardContext.lineWidth = 2;
+                    // cardContext.lineWidth = 1;
                     // cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
+
+                    cardContext.font = '20px sans-serif';
+                    cardContext.textAlign = 'right';
+                    cardContext.fillStyle = 'black';
+                    cardContext.textBaseline = 'top';
+                    cardContext.fillText('Unregistered Viller\'s Bingo Bongo', cardCanvas.width - 10, 10);
+                    cardContext.fillText(seed, cardCanvas.width - 10, 32);
 
                     cardContext.textAlign = 'center';
                     cardContext.textBaseline = 'middle';
                     cardContext.fillStyle = 'black';
                     cardContext.font = `${fontSize}px 'Fredericka the Great', cursive`;
 
-                    if (options.length > 0) {
-                        const lines = splitText(options[tileId % options.length], 6);
-                        let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
-                        lines.forEach((line) => {
-                            cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
-                            lineY += fontSize;
-                        });    
-                    }
+                    const lines = splitText(shuffledOptions[tileId < 12 ? tileId : tileId -1], 6);
+                    let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
+                    lines.forEach((line) => {
+                        cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
+                        lineY += fontSize;
+                    });
                 }
             }
 
@@ -179,11 +245,12 @@
             bongoForm.addEventListener('submit', (e) => {
                 e.preventDefault(true);
                 const formData = new FormData(bongoForm);
-                options = formData.get('options')
+                const options = formData.get('options')
                     .split(/\n/)
-                    .map((line) => line.trim())
-                    .filter((line) => line !== '');
-                    renderTiles();	
+                    .filter((line) => line.trim().length > 0);
+                const seed = (formData.get('seed') || null);
+
+                renderTiles(options, seed);
             });
 
             prefillOptions();
