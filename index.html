@@ -11,39 +11,111 @@
         <div style="font: 0px 'Fredericka the Great', cursive;">Font loader</div>
         <div style="width: 500px; display: inline-block; vertical-align: top;">
             <form id="bongoForm">
-                <label for="optionsInput">Options (one per line):</label><br />
-                <textarea id="optionsInput" name="options" style="width: 100%; height: 400px;"></textarea><br />
-                <label for="seedInput">Seed:</label><input type="text" id="seedInput" name="seed" placeholder="random" /><br />
-                <button type="submit">Bongo!</button>
+                <fieldset>
+                    <legend>Design</legend>
+                    <label>
+                        Background:
+                        <input type="file" id="backgroundImageInput" accept="image/*">
+                    </label><br />
+                    <label>
+                        Free spot:
+                        <input type="file" id="freeSpotImageInput" accept="image/*">
+                    </label><br />
+                    <label>
+                        StartX:
+                        <input type="number" name="startX" min="0" max="500" step="1" value="68" />
+                    </label><br />
+                    <label>
+                        StartY:
+                        <input type="number" name="startY" min="0" max="500" step="1" value="330" />
+                    </label><br />
+                    <label>
+                        Tile size:
+                        <input type="number" name="tileSize" min="0" max="500" step="1" value="169" />
+                    </label><br />
+                    <button type="button" id="overlayButton" style="float: right;">Toggle debug overlay</button>
+                    <label>
+                        Tile spacing:
+                        <input type="number" name="tileSpacing" min="0" max="500" step="1" value="37" />
+                    </label><br />
+                </fieldset>
+                <fieldset>
+                    <legend>Options</legend>
+                    <label>
+                        Options (one per line):<br />
+                        <textarea
+                            name="options"
+                            id="optionsInput"
+                            style="width: 100%; height: 400px; resize: vertical;"
+                        ></textarea>
+                    </label><br />
+                    <label>
+                        Seed:
+                        <input type="text" name="seed" id="seedInput" placeholder="Random!" />
+                    </label>
+                    <button type="button" id="bongoButton">Bongo!</button>
+                </fieldset>
             </form>
-            <p id="renderError" style="color: red; font-weight: bold;"></p>
         </div>
-        <div style="margin-left: 10px; width: 500px; resize: horizontal; overflow: scroll; display: inline-block; vertical-align: top;">
-            <canvas id="cardCanvas" style="width: 100%"></canvas>
+        <div style="width: 517px; resize: horizontal; overflow: scroll; display: inline-block; vertical-align: top;">
+            <fieldset>
+                <legend>Preview (save for full size)</legend>
+                <canvas id="cardCanvas" width="1127" height="1600" style="width: 100%;"></canvas>
+            </fieldset>
         </div>
         <script>
+            // TODO: Packing, auto refresh, local storage, font
+
             /** @type {HTMLCanvasElement} */
             const cardCanvas = document.getElementById('cardCanvas');
             const cardContext = cardCanvas.getContext('2d');
-            const backgroundImage = document.createElement('img');
-            const optionsInput = document.getElementById('optionsInput');
-            const seedInput = document.getElementById('seedInput');
-            const bongoForm = document.getElementById('bongoForm');
-            const renderError = document.getElementById('renderError');
 
-            // Configurable:
-            backgroundImage.src = 'template.jpg';
-            const startX = 68;
-            const startY = 330;
-            const tileSize = 169;
-            const tileSpacing = 37;
-            const fontSize = tileSize / 6;
+            const bongoForm = document.getElementById('bongoForm');
+            const bongoButton = document.getElementById('bongoButton');
+            const overlayButton = document.getElementById('overlayButton');
+            const seedInput = document.getElementById('seedInput');
+
+            const backgroundImageInput = document.getElementById('backgroundImageInput');
+            const freeSpotImageInput = document.getElementById('freeSpotImageInput');
+ 
+            /** @type {HTMLImageElement|null} */
+            let backgroundImage = null;
+            /** @type {HTMLImageElement|null} */
+            let freeSpotImage = null;
+
+            let overlayEnabled = false;
+            let fontLoaded = false;
+            let fallbackSeed = createRandomSeed();
+
+            /**
+             * @param {File} file
+             * @returns {Promise<HTMLImageElement>}
+             */
+            function loadImage(file) {
+                const fileReader = new FileReader();
+                fileReader.readAsDataURL(file);
+
+                return new Promise((resolve, reject) => {
+                    fileReader.addEventListener('load', () => {
+                        const image = document.createElement('img');
+                        image.src = fileReader.result;
+                        image.addEventListener('load', () => {
+                            resolve(image);
+                        });
+                        image.addEventListener('error', () => {
+                            reject('Could not load image!');
+                        });
+                    })
+                    fileReader.addEventListener('error', () => {
+                        reject('Could not read file!');
+                    });
+                });
+            }
 
             /**
              * https://stackoverflow.com/a/47593316
              * 
              * @param {string} seed
-             * @returns {() => number}
              */
             function createRandom(seed) {
                 function xmur3(str) {
@@ -76,34 +148,14 @@
                 return sfc32(seed(), seed(), seed(), seed());
             }
 
-            function prefillOptions() {
-                const prefillOptions = [
-                    'Kabouter Plop - Kabouterdans',
-                    'George Baker Selection - Una Paloma Blanca',
-                    'Gebroeders Ko - Toeter Op M\'n Waterscooter',
-                    'Cyndi Lauper - Girls Just Want to Have Fun',
-                    'Five - Everybody Get Up',
-                    'Toy-Box - Tarzan & Jane',
-                    'O-Zone - Dragonstea Din Tei',
-                    'Bassie & Adriaan - Hallo Vriendjes',
-                    'K-otic - Damn (I Think I Love You)',
-                    'Marianne Rosenberg - Ich Bin Wie Du',
-                    'Paul de Leeuw - Vlieg Met Me Mee',
-                    'Wham! - Wake Me Up Before You Go-Go',
-                    'Jody Bernal - Que Si, Que No',
-                    'De Jeugd van Tegenwoordig - Sterrenstof',
-                    'Jason Paige - Pokémon Theme Song',
-                    'André Hazes - Leef',
-                    'AC/DC - Thunderstruck',
-                    '"Weird Al" Yankovic - NOW That\'s What I call Polka!',
-                    'The Swedish Chef - Popcorn',
-                    'Rednex - Cotton Eye Joe',
-                    'Gigi D\'Agostino - L\'Amours Toujours',
-                    'Anita Meyer - Why Tell Me Why',
-                    'Village People - YMCA',
-                    'Vinzzent - Dromendans',
-                ];
-                optionsInput.value = prefillOptions.join('\n');
+            function createRandomSeed() {
+                const seedCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                let seed = ''
+                for (let i = 0; i < 8; i++) {
+                    seed += seedCharacters[Math.floor(Math.random() * seedCharacters.length)]
+                }
+
+                return seed;
             }
 
             /**
@@ -111,7 +163,6 @@
              * 
              * @param {string} text
              * @param {number} [maxLines]
-             * @returns {string[]}
              */
             function splitText(text, maxLines) {
                 let lines = [text.replace(/\s+/, ' ').trim()];
@@ -163,97 +214,163 @@
                 return lines;
             }
 
-            function renderBackground() {
-                cardCanvas.width = backgroundImage.width;
-                cardCanvas.height = backgroundImage.height;
-                
-                cardContext.drawImage(backgroundImage, 0, 0);
-            }
+            function render() {
+                // Parse form values.
+                const formData = new FormData(bongoForm);
 
-            /**
-             * @param {string[]} options
-             * @param {string|null} seed
-             */
-            function renderTiles(options, seed) {
-                renderBackground();
+                const startX = Number(formData.get('startX'));
+                const startY = Number(formData.get('startY'));
+                const tileSize = Number(formData.get('tileSize'));
+                const tileSpacing = Number(formData.get('tileSpacing'));
+                const options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
+                const seed = (formData.get('seed') || fallbackSeed);
 
-                if (options.length < 24) {
-                    renderError.innerText = `Not enough options! ${options.length} out of 24 required.`;
-                    return;
+                const fontSize = (tileSize / 6);
+                const width = (backgroundImage?.width ?? cardCanvas.width);
+                const height = (backgroundImage?.height ?? cardCanvas.height);
+
+                cardCanvas.width = width;
+                cardCanvas.height = height;
+
+                if (backgroundImage) {
+                    cardContext.drawImage(backgroundImage, 0, 0);
                 }
 
-                renderError.innerText = '';
+                // Debug information.
+                if (overlayEnabled) {
+                    cardContext.font = '20px sans-serif';
+                    cardContext.fillStyle = 'black';
+                    cardContext.textBaseline = 'top';
+                    cardContext.textAlign = 'right';
+                    let debugTextY = 10;
 
-                if (!seed) {
-                    const seedCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-                    seed = '';
-                    for (let i = 0; i < 8; i++) {
-                        seed += seedCharacters[Math.floor(Math.random() * seedCharacters.length)]
+                    /** @param {string} message */
+                    function drawDebugMessage(message) {
+                        cardContext.fillText(message, width - 10, debugTextY);
+                        debugTextY += 22;
+                    }
+
+                    drawDebugMessage(`Seed: ${seed}`);
+
+                    if (!backgroundImage) {
+                        drawDebugMessage('No background image!');
+                    }
+                    if (!fontLoaded) {
+                        drawDebugMessage('Font not loaded!');
+                    }
+                    if (options.length < 24) {
+                        drawDebugMessage(`Not enough options (${options.length}/24)!`);
                     }
                 }
+
+                // Shuffle and limit options.
                 const random = createRandom(seed);
-
-                options = [...options];
+                let remainingOptions = [...options];
                 const shuffledOptions = [];
-                for (let i = 0; i < 24; i++) {
-                    shuffledOptions.push(options.splice(Math.floor(random() * options.length), 1)[0]);
+                while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
+                    shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
                 }
 
+                // Draw tiles.
+                cardContext.textAlign = 'center';
+                cardContext.textBaseline = 'middle';
+                cardContext.fillStyle = 'black';
+                cardContext.font = `${fontSize}px 'Fredericka the Great', cursive`;
+                
                 for (let tileId = 0; tileId < 25; tileId++) {
-                    if (tileId === 12) {
-                        continue;
-                    }
-
                     const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
                     const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
 
-                    // cardContext.strokeStyle = 'lime';
-                    // cardContext.lineWidth = 1;
-                    // cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
+                    if (tileId === 12) {
+                        // Draw free spot image.
+                        if (freeSpotImage) {
+                            cardContext.drawImage(freeSpotImage, tileX, tileY, tileSize, tileSize);
+                        }
+                        continue;
+                    }
 
-                    cardContext.font = '20px sans-serif';
-                    cardContext.textAlign = 'right';
-                    cardContext.fillStyle = 'black';
-                    cardContext.textBaseline = 'top';
-                    cardContext.fillText('Unregistered Viller\'s Bingo Bongo', cardCanvas.width - 10, 10);
-                    cardContext.fillText(seed, cardCanvas.width - 10, 32);
+                    if (overlayEnabled) {
+                        cardContext.strokeStyle = 'lime';
+                        cardContext.lineWidth = 1;
+                        cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
+                    }
 
-                    cardContext.textAlign = 'center';
-                    cardContext.textBaseline = 'middle';
-                    cardContext.fillStyle = 'black';
-                    cardContext.font = `${fontSize}px 'Fredericka the Great', cursive`;
-
-                    const lines = splitText(shuffledOptions[tileId < 12 ? tileId : tileId -1], 6);
-                    let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
-                    lines.forEach((line) => {
-                        cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
-                        lineY += fontSize;
-                    });
+                    const optionIndex = (tileId < 12 ? tileId : tileId -1);
+                    if (optionIndex < shuffledOptions.length) {
+                        const lines = splitText(shuffledOptions[optionIndex], 6);
+                        let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
+                        lines.forEach((line) => {
+                            cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
+                            lineY += fontSize;
+                        });
+                    }
                 }
             }
 
-            backgroundImage.addEventListener('load', () => {
-                document.fonts.ready.then(() => {
-                    if (!document.fonts.check(`0 'Fredericka the Great'`)) {
-                        console.error('Failed to load font!');
-                    }
+            // Event listeners
+            bongoForm.addEventListener('change', () => render());
 
-                    renderBackground();
-                });
+            document.fonts.ready.then(() => {
+                if (!document.fonts.check(`0 'Fredericka the Great'`)) {
+                    console.error('Failed to load font!');
+                    return;
+                }
+
+                fontLoaded = true;
             });
 
-            bongoForm.addEventListener('submit', (e) => {
-                e.preventDefault(true);
-                const formData = new FormData(bongoForm);
-                const options = formData.get('options')
-                    .split(/\n/)
-                    .filter((line) => line.trim().length > 0);
-                const seed = (formData.get('seed') || null);
-
-                renderTiles(options, seed);
+            bongoForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                render();
             });
 
-            prefillOptions();
+            overlayButton.addEventListener('click', () => {
+                overlayEnabled = !overlayEnabled;
+                render();
+            });
+
+            bongoButton.addEventListener('click', () => {
+                // Force refresh fallback seed so it stays the same unless the power of the bongo is wielded.
+                fallbackSeed = createRandomSeed();
+                render();
+            });
+
+            backgroundImageInput.addEventListener('change', async () => {
+                backgroundImage = await loadImage(backgroundImageInput.files[0]);
+                render();
+            });
+            freeSpotImageInput.addEventListener('change', async () => {
+                freeSpotImage = await loadImage(freeSpotImageInput.files[0]);
+                render();
+            });
+
+            const prefillOptions = [
+                'Kabouter Plop - Kabouterdans',
+                'George Baker Selection - Una Paloma Blanca',
+                'Gebroeders Ko - Toeter Op M\'n Waterscooter',
+                'Cyndi Lauper - Girls Just Want to Have Fun',
+                'Five - Everybody Get Up',
+                'Toy-Box - Tarzan & Jane',
+                'O-Zone - Dragonstea Din Tei',
+                'Bassie & Adriaan - Hallo Vriendjes',
+                'K-otic - Damn (I Think I Love You)',
+                'Marianne Rosenberg - Ich Bin Wie Du',
+                'Paul de Leeuw - Vlieg Met Me Mee',
+                'Wham! - Wake Me Up Before You Go-Go',
+                'Jody Bernal - Que Si, Que No',
+                'De Jeugd van Tegenwoordig - Sterrenstof',
+                'Jason Paige - Pokémon Theme Song',
+                'André Hazes - Leef',
+                'AC/DC - Thunderstruck',
+                '"Weird Al" Yankovic - NOW That\'s What I call Polka!',
+                'The Swedish Chef - Popcorn',
+                'Rednex - Cotton Eye Joe',
+                'Gigi D\'Agostino - L\'Amours Toujours',
+                'Anita Meyer - Why Tell Me Why',
+                'Village People - YMCA',
+                'Vinzzent - Dromendans',
+            ];
+            optionsInput.value = prefillOptions.join('\n');
         </script>
     </body>
 </html>
