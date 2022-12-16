@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Running pace converter</title>
+        <script src="./script.js"></script>
+    </head>
+    <body>
+        <form>
+            <input
+                name="pace"
+                type="text"
+                style="width: 80px;"
+            /> / km<br />
+            <input
+                name="speed"
+                type="number"
+                step="0.1"
+                style="width: 80px;"
+            /> km/h<br />
+            <input
+                name="burgerKingPace"
+                type="text"
+                style="width: calc(80px * 1.609344); font-family: 'Comic Sans MS';"
+            /><span style="font-family: 'Comic Sans MS';"> / mi</span><br />
+            <br />
+            <del>
+                <input
+                    name="tenTime"
+                    type="text"
+                    style="width: 50px;"
+                /> 10K (10km)<br />
+                <input
+                    name="halfMarathonTime"
+                    type="text"
+                    style="width: 50px;"
+                /> half marathon (21.0975km)<br />
+                <input
+                    name="marathonTime"
+                    type="text"
+                    style="width: 50px;"
+                /> marathon (42.195km)
+            </del><br />
+            <br />
+            <button type="button" id="feedbackButton">Feedback</button>
+        </form>
+    </body>
+</html>
