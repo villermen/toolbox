@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>BPM checker</title>
+        <script src="./script.js"></script>
+        <style>
+            .no-tap-zone {
+                display: inline-block;
+                padding: 0 1em;
+                max-width: 300px;
+                background-color: #0000000f;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="no-tap-zone">
+            <p>
+                Press space, click or tap outside this area to the beat to check BPM.
+            </p>
+            <table>
+                <tbody>
+                    <tr>
+                        <td>BPM</td>
+                        <td id="bpmResult"></td>
+                    </tr>
+                    <tr>
+                        <td>BPS</td>
+                        <td id="bpsResult"></td>
+                    </tr>
+                    <tr>
+                        <td>Time</td>
+                        <td id="timeResult"></td>
+                    </tr>
+                    <tr>
+                        <td>Taps</td>
+                        <td id="tapResult"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                <button id="resetButton">Reset (Esc)</button>
+            </p>
+        </div>
+    </body>
+</html>
