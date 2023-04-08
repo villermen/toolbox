@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const feedbackButton = document.getElementById('feedbackButton');
 
     function update(speed, inputWeDontTouch) {
+        const setPlaceholders = inputWeDontTouch === null;
+
         let paceFormatted = '???';
         let speedFormatted = '???';
         let burgerKingPaceFormatted = '???';
@@ -55,6 +57,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (marathonTimeInput !== inputWeDontTouch) {
             marathonTimeInput.value = marathonTimeFormatted;
         }
+
+        if (setPlaceholders) {
+            speedInput.placeholder = speedFormatted;
+            paceInput.placeholder = paceFormatted;
+            burgerKingPaceInput.placeholder = burgerKingPaceFormatted;
+            fiveTimeInput.placeholder = fiveTimeFormatted;
+            tenTimeInput.placeholder = tenTimeFormatted;
+            halfTimeInput.placeholder = halfTimeFormatted;
+            marathonTimeInput.placeholder = marathonTimeFormatted;
+        }
+
     }
 
     function parseTime(value) {
@@ -122,5 +135,5 @@ document.addEventListener('DOMContentLoaded', () => {
         audio.play();
     });
 
-    update(15.0, null);
+    update(12.5, null);
 });

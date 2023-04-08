@@ -2,50 +2,83 @@
 <html>
     <head>
         <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Running pace converter</title>
+        <link rel="stylesheet" href="../style.css">
         <script src="./script.js"></script>
     </head>
     <body>
-        <form>
-            <input
-                name="pace"
-                type="text"
-                style="width: 80px;"
-            /> / km<br />
-            <input
-                name="speed"
-                type="text"
-                style="width: 80px;"
-            /> km/h<br />
-            <br />
-            <input
-                name="burgerKingPace"
-                type="text"
-                style="width: 80px;"
-            /><span style="font-family: 'Comic Sans MS';"> / mi</span><br />
-            <br />
-            <input
-                name="fiveTime"
-                type="text"
-                style="width: 80px;"
-            /> 5K (5km)<br />
-            <input
-                name="tenTime"
-                type="text"
-                style="width: 80px;"
-            /> 10K (10km)<br />
-            <input
-                name="halfTime"
-                type="text"
-                style="width: 80px;"
-            /> half marathon (21.0975km)<br />
-            <input
-                name="marathonTime"
-                type="text"
-                style="width: 80px;"
-            /> marathon (42.195km)<br />
-            <br />
-            <button type="button" id="feedbackButton">Feedback</button>
-        </form>
+        <div class="container mt-5 mb-5">
+            <h1>Running pace converter</h1>
+            <p class="lead">Change a value in any of the inputs below and the other values will automatically update to match.<p>
+            <form class="pace-form">
+                <div class="row mb-2">
+                    <label for="paceInput" class="col-sm-3 col-lg-2 col-form-label">Pace</label>
+                    <div class="col-sm-9 col-lg-10">
+                        <div class="input-group">
+                            <input id="paceInput" name="pace" type="text" class="form-control" />
+                            <label class="input-group-text" for="paceInput">/ km</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label for="paceInput" class="col-sm-3 col-lg-2 col-form-label">Speed</label>
+                    <div class="col-sm-9 col-lg-10">
+                        <div class="input-group">
+                            <input id="speedInput" name="speed" type="text" class="form-control" />
+                            <label class="input-group-text" for="speedInput">km/h</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label for="paceInput" class="col-sm-3 col-lg-2 col-form-label">Burger King®️ pace</label>
+                    <div class="col-sm-9 col-lg-10">
+                        <div class="input-group">
+                            <input id="burgerKingPaceInput" name="burgerKingPace" type="text" class="form-control" />
+                            <label class="input-group-text" for="burgerKingPaceInput">/ mi</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label for="fiveTimeInput" class="col-sm-3 col-lg-2 col-form-label">5K time</label>
+                    <div class="col-sm-9 col-lg-10">
+                        <div class="input-group">
+                            <input id="fiveTimeInput" name="fiveTime" type="text" class="form-control" />
+                            <label class="input-group-text" for="fiveTimeInput">/ 5 km</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label for="tenTimeInput" class="col-sm-3 col-lg-2 col-form-label">10K time</label>
+                    <div class="col-sm-9 col-lg-10">
+                        <div class="input-group">
+                            <input id="tenTimeInput" name="tenTime" type="text" class="form-control" />
+                            <label class="input-group-text" for="tenTimeInput">/ 10 km</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label for="halfTimeInput" class="col-sm-3 col-lg-2 col-form-label">Half marathon time</label>
+                    <div class="col-sm-9 col-lg-10">
+                        <div class="input-group">
+                            <input id="halfTimeInput" name="halfTime" type="text" class="form-control" />
+                            <label class="input-group-text" for="halfTimeInput">/ 21.0975 km</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label for="marathonTimeInput" class="col-sm-3 col-lg-2 col-form-label">Marathon time</label>
+                    <div class="col-sm-9 col-lg-10">
+                        <div class="input-group">
+                            <input id="marathonTimeInput" name="marathonTime" type="text" class="form-control" />
+                            <label class="input-group-text" for="marathonTimeInput">/ 42.195 km</label>
+                        </div>
+                    </div>
+                </div>
+                <hr class="mt-5" />
+                <a href="../index.html" class="btn btn-primary">Back</a>
+                <button type="button" class="btn btn-secondary float-end" id="feedbackButton">Feedback?</button>
+            </form>
+        </div>
     </body>
 </html>

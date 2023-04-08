@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     document.addEventListener('mousedown', (event) => {
-        if (!['HTML', 'BODY'].includes(event.target.tagName) || event.button !== 0) {
+        if (['A', 'BUTTON'].includes(event.target.tagName) || event.button !== 0) {
             return;
         }
 
@@ -46,14 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tap(event.timeStamp);
     });
     document.addEventListener('touchstart', (event) => {
-        if (!['HTML', 'BODY'].includes(event.target.tagName)) {
+        if (['A', 'BUTTON'].includes(event.target.tagName)) {
             return;
         }
 
         tap(event.timeStamp);
     });
     document.addEventListener('touchend', (event) => {
-        if (!['HTML', 'BODY'].includes(event.target.tagName)) {
+        if (['A', 'BUTTON'].includes(event.target.tagName)) {
             return;
         }
 
@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     resetButton.addEventListener('click', () => {
-        console.log('click');
         // Note: Triggers after processing mousedown.
         reset();
     });
