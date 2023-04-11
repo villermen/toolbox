@@ -1,10 +1,11 @@
 <?php
 
-use Villermen\Toolbox\Work\WorkApp;
+use Villermen\Toolbox\App;
 
 require_once('../../vendor/autoload.php');
 
-$app = new WorkApp();
+$app = new App();
+$profile = $app->getAuthenticatedProfile();
 ?>
 <!DOCTYPE html>
 <html>
@@ -17,11 +18,13 @@ $app = new WorkApp();
     </head>
     <body>
         <div class="container mt-5 mb-5">
-            <?php if ($app->getAuthenticatedProfile()): ?>
-                <?php dump($app->getAuthenticatedProfile()); ?>
+            <?php if ($profile): ?>
+                <?php dump($profile, ['autoBreak' => $profile->getAutoBreak()]); ?>
             <?php else: ?>
                 <div class="text-center">
-                    <a href="oauth.php" class="btn btn-primary">Log in with Google</a>
+                    <a href="<?= $app->createUrl('auth.php', [
+                        'redirect' => $app->createPath('work/index.php'),
+                    ]); ?>" class="btn btn-primary">Log in with Google</a>
                 </div>
             <?php endif; ?>
         </div>

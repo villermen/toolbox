@@ -1,10 +1,10 @@
 <?php
 
-require_once('../../vendor/autoload.php');
+require_once('../vendor/autoload.php');
 
-use Villermen\Toolbox\Work\WorkApp;
+use Villermen\Toolbox\App;
 
-$app = new WorkApp();
+$app = new App();
 try {
     $redirectUrl = $app->authenticate();
     header(sprintf('Location: %s', $redirectUrl));

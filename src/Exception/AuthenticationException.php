@@ -1,6 +1,6 @@
 <?php
 
-namespace Villermen\Toolbox\Work;
+namespace Villermen\Toolbox\Exception;
 
 class AuthenticationException extends \Exception
 {
