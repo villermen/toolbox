@@ -19,7 +19,7 @@ $profile = $app->getAuthenticatedProfile();
     <body>
         <div class="container mt-5 mb-5">
             <?php if ($profile): ?>
-                <?php dump($profile, ['autoBreak' => $profile->getAutoBreak()]); ?>
+                <?php var_dump($profile, ['autoBreak' => $profile->getAutoBreak()]); ?>
             <?php else: ?>
                 <div class="text-center">
                     <a href="<?= $app->createUrl('auth.php', [
