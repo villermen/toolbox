@@ -10,7 +10,8 @@
         "php": ">=8.2",
         "league/oauth2-client": "^2.6",
         "symfony/yaml": "^6.2",
-        "league/oauth2-google": "^4.0"
+        "league/oauth2-google": "^4.0",
+        "webmozart/assert": "^1.11"
     },
     "require-dev": {
         "symfony/var-dumper": "^6.2"

@@ -72,7 +72,7 @@ class Authentication
                 'id' => $ownerDetails->getId(),
                 'email' => $ownerDetails->getEmail(),
                 'name' => $ownerDetails->getName(),
-                'imageUrl' => $ownerDetails->getAvatar(),
+                'avatar' => $ownerDetails->getAvatar(),
                 // Refresh token currently not needed. Can be fixed by adding 'accessType' => 'offline'.
                 // 'refreshToken' => $token->getRefreshToken(),
             ]);
@@ -86,5 +86,16 @@ class Authentication
         } catch (\Exception $e) {
             throw new AuthenticationException('Error retrieving user details.', 0, $e);
         }
+    }
+
+    public function logout(): string
+    {
+        if (empty($_GET['redirect']) || $_GET['redirect'][0] !== '/') {
+            throw new AuthenticationException('Redirect not set or invalid.');
+        }
+
+        $this->session->set(self::SESSION_KEY_PROFILE, null);
+
+        return $_GET['redirect'];
     }
 }

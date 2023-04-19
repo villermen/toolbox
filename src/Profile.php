@@ -22,8 +22,13 @@ class Profile
         return sprintf('data/profile-%s.json', $profileId);
     }
 
-    private function __construct(private string $profileId, private ?array $auth, private ?array $settings, private ?array $checkins)
-    {
+    private function __construct(
+        private string $profileId,
+        private ?array $auth,
+        private ?array $settings,
+        /** @var int[] */
+        private ?array $checkins
+    ) {
     }
 
     public function setAuth(array $auth): void
@@ -45,11 +50,35 @@ class Profile
         }
     }
 
+    /**
+     * @return int[]
+     */
+    public function getCheckins(): array
+    {
+        return $this->checkins ?? [];
+    }
+
+    public function addCheckin(int $timestamp): void
+    {
+        $this->checkins[] = $timestamp;
+    }
+
+    public function getName(): ?string
+    {
+        return ($this->auth['name'] ?? null);
+    }
+
+    public function getAvatar(): ?string
+    {
+        return ($this->auth['avatar'] ?? null);
+    }
+
     public function save(): void
     {
         $data = [
             'auth' => $this->auth,
             'settings' => $this->settings,
+            'checkins' => $this->checkins,
         ];
 
         if (!file_put_contents(self::getPath($this->profileId), json_encode($data))) {

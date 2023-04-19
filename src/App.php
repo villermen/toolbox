@@ -36,6 +36,11 @@ class App
         return $this->authentication->authenticate();
     }
 
+    public function logout(): string
+    {
+        return $this->authentication->logout();
+    }
+
     public function createUrl(string $path, ?array $query = null): string
     {
         return $this->config->createUrl($path, $query);

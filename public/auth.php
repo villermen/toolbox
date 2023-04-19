@@ -3,11 +3,16 @@
 require_once('../vendor/autoload.php');
 
 use Villermen\Toolbox\App;
+use Villermen\Toolbox\Exception\AuthenticationException;
 
 $app = new App();
 try {
-    $redirectUrl = $app->authenticate();
+    if (isset($_GET['logout'])) {
+        $redirectUrl = $app->logout();
+    } else {
+        $redirectUrl = $app->authenticate();
+    }
     header(sprintf('Location: %s', $redirectUrl));
-} catch (\Exception $exception) {
+} catch (AuthenticationException $exception) {
     echo sprintf(sprintf('Error: %s', htmlspecialchars($exception->getMessage())));
 }
