@@ -2,6 +2,9 @@
 
 namespace Villermen\Toolbox;
 
+use DateTimeImmutable;
+use DateTimeInterface;
+
 class Profile
 {
     public static function load(string $profileId): self
@@ -51,16 +54,22 @@ class Profile
     }
 
     /**
-     * @return int[]
+     * @return \DateTimeInterface[]
      */
     public function getCheckins(): array
     {
-        return $this->checkins ?? [];
+        if (!$this->checkins) {
+            return [];
+        }
+
+        return array_map(fn (int $checkin): \DateTimeImmutable => (
+            new DateTimeImmutable(sprintf('@%s', $checkin))
+        ), $this->checkins);
     }
 
-    public function addCheckin(int $timestamp): void
+    public function addCheckin(DateTimeInterface $time): void
     {
-        $this->checkins[] = $timestamp;
+        $this->checkins[] = $time->getTimestamp();
     }
 
     public function getName(): ?string

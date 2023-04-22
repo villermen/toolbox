@@ -8,7 +8,7 @@ $app = new WorkApp();
 
 $profile = $app->getAuthenticatedProfile();
 if ($profile) {
-    $app->performCheckin($profile);
+    $app->addCheckin($profile);
     $redirectUrl = $app->createUrl('work/index.php');
 } else {
     $redirectUrl = $app->createUrl('auth.php', [
