@@ -11,7 +11,7 @@ $profile = $app->getAuthenticatedProfile();
 // TODO: In progress on current day, simulate to give an impression? Will be hard with auto breaking.
 // TODO: Start and end can exceed bounds.
 $createBarRanges = function (Workday $workday): array {
-    $visibleDayStart = 6 * 3600 + $workday->getDate()->getTimestamp();
+    $visibleDayStart = 7 * 3600 + $workday->getDate()->getTimestamp();
     $visibleDayEnd = 20 * 3600 + $workday->getDate()->getTimestamp();
     $visibleDaySeconds = ($visibleDayEnd - $visibleDayStart);
 
