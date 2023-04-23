@@ -2,9 +2,6 @@
 
 namespace Villermen\Toolbox;
 
-use DateTimeImmutable;
-use DateTimeInterface;
-
 class Profile
 {
     public static function load(string $profileId): self
@@ -63,11 +60,11 @@ class Profile
         }
 
         return array_map(fn (int $checkin): \DateTimeImmutable => (
-            new DateTimeImmutable(sprintf('@%s', $checkin))
+            (new \DateTimeImmutable(sprintf('@%s', $checkin)))->setTimezone($this->getTimezone())
         ), $this->checkins);
     }
 
-    public function addCheckin(DateTimeInterface $time): void
+    public function addCheckin(\DateTimeInterface $time): void
     {
         $this->checkins[] = $time->getTimestamp();
     }
@@ -80,6 +77,16 @@ class Profile
     public function getAvatar(): ?string
     {
         return ($this->auth['avatar'] ?? null);
+    }
+
+    public function getTimezone(): \DateTimeZone
+    {
+        return new \DateTimeZone('Europe/Amsterdam');
+    }
+
+    public function getFte(): float
+    {
+        return 0.8;
     }
 
     public function save(): void

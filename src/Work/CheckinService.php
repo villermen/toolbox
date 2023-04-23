@@ -2,19 +2,10 @@
 
 namespace Villermen\Toolbox\Work;
 
-use DateTime;
 use Villermen\Toolbox\Profile;
 
 class CheckinService
 {
-    // Could be configured on profile instead.
-    private \DateTimeZone $timezone;
-
-    public function __construct()
-    {
-        $this->timezone = new \DateTimeZone('Europe/Amsterdam');
-    }
-
     // /**
     //  * @return Workday[]
     //  */
@@ -40,7 +31,7 @@ class CheckinService
     public function getWorkday(Profile $profile, \DateTimeInterface $date): Workday
     {
         $dayStart = \DateTime::createFromInterface($date);
-        $dayStart->setTimezone($this->timezone);
+        $dayStart->setTimezone($profile->getTimezone());
         $dayStart->setTime(0, 0, 0);
         $dayEnd = clone $dayStart;
         $dayEnd->setTime(23, 59, 59);
@@ -55,7 +46,7 @@ class CheckinService
     public function addCheckin(Profile $profile, \DateTimeInterface $time): bool
     {
         $time = \DateTime::createFromInterface($time);
-        $time->setTimezone($this->timezone);
+        $time->setTimezone($profile->getTimezone());
 
         $checkins = $profile->getCheckins();
 
@@ -71,22 +62,25 @@ class CheckinService
         }
         if ($previousCheckin) {
             $previousCheckin = \DateTime::createFromInterface($previousCheckin);
-            $previousCheckin->setTimezone($this->timezone);
+            $previousCheckin->setTimezone($profile->getTimezone());
         }
         if ($nextCheckin) {
             $nextCheckin = \DateTime::createFromInterface($nextCheckin);
-            $nextCheckin->setTimezone($this->timezone);
+            $nextCheckin->setTimezone($profile->getTimezone());
         }
 
         if ($previousCheckin && !$nextCheckin) {
-            $diff = $previousCheckin->diff($time);
+            $diff = ($time->getTimestamp() - $previousCheckin->getTimestamp());
+            $previousDay = (int)$previousCheckin->format('Ymd');
+            $currentDay = (int)$time->format('Ymd');
+            
             // Prevent checkins less than a minute apart (double scans).
-            if ($diff->s < 60) {
+            if ($diff < 60) {
                 return false;
             }
 
             // Correct forgotten checkins: Checkins that span a day and time difference is big enough.
-            if ((int)$previousCheckin->format('Ymd') === (int)$time->format('Ymd') - 1 && $diff->h >= 6) {
+            if ($previousDay === $currentDay - 1 && $diff >= 6 * 3600) {
                 $dayEnd = \DateTime::createFromInterface($previousCheckin);
                 $dayEnd->setTime(23, 59, 59);
                 $dayStart = \DateTime::createFromInterface($time);
@@ -97,7 +91,7 @@ class CheckinService
             }
 
             // Auto break.
-            if ($profile->getAutoBreak()) {
+            if ($profile->getAutoBreak() && $previousDay === $currentDay) {
                 $breakStart = \DateTime::createFromInterface($time);
                 $breakStart->setTime(12, 45);
                 $breakEnd = \DateTime::createFromInterface($time);

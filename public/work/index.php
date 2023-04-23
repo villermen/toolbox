@@ -8,28 +8,59 @@ require_once('../../vendor/autoload.php');
 $app = new WorkApp();
 $profile = $app->getAuthenticatedProfile();
 
-$clipOffset = function (Workday $workday, \DateTimeInterface $start, ?\DateTimeInterface $end): ?array {
-    $visibleDayStart = 6;
-    $visibleDayEnd = 20;
-    $visibleSeconds = ($visibleDayEnd - $visibleDayStart) * 3600;
+// TODO: In progress on current day, simulate to give an impression? Will be hard with auto breaking.
+// TODO: Start and end can exceed bounds.
+$createBarRanges = function (Workday $workday): array {
+    $visibleDayStart = 6 * 3600 + $workday->getDate()->getTimestamp();
+    $visibleDayEnd = 20 * 3600 + $workday->getDate()->getTimestamp();
+    $visibleDaySeconds = ($visibleDayEnd - $visibleDayStart);
 
-    $left = ($start->getTimestamp() - $workday->getDate()->getTimestamp() - $visibleDayStart * 3600) / $visibleSeconds;
-    // TODO: !$end + dayend cutoff
-    $width = ($end->getTimestamp() - $start->getTimestamp()) / $visibleSeconds;
+    $x = 0;
+    $barRanges = [];
+    foreach ($workday->getRanges() as ['start' => $start, 'end' => $end]) {
+        if ($end && $end->getTimestamp() < $visibleDayStart || $start->getTimestamp() > $visibleDayEnd) {
+            continue;
+        }
 
-    $inRange = true;
-    if (!$inRange) {
-        return null;
+        $marginLeft = ($start->getTimestamp() - $visibleDayStart) / $visibleDaySeconds * 100.0 - $x;
+        if ($end) {
+            $width = ($end->getTimestamp() - $start->getTimestamp()) / $visibleDaySeconds * 100.0;
+        } else {
+            $width = 10.0;
+        }
+
+        $barRanges[] = [
+            'startFormatted' => $start->format('H:i'),
+            'endFormatted' => ($end ? $end->format('H:i') : '???'),
+            'marginLeft' => sprintf('%s%%', $marginLeft),
+            'width' => sprintf('%s%%', $width),
+            'colorClass' => ($end ? 'bg-primary' : 'bg-warning'),
+        ];
+
+        $x += $marginLeft + $width;
     }
 
-    return [
-        'left' => $left,
-        'width' => $width,
-    ];
+    return $barRanges;
+};
+$getInvisibleRanges = function (Workday $workday): array {
+    $visibleDayStart = 6 * 3600 + $workday->getDate()->getTimestamp();
+    $visibleDayEnd = 20 * 3600 + $workday->getDate()->getTimestamp();
+
+    $invisibleRanges = [];
+    foreach ($workday->getRanges() as ['start' => $start, 'end' => $end]) {
+        if ($end && $end->getTimestamp() < $visibleDayStart || $start->getTimestamp() > $visibleDayEnd) {
+            $invisibleRanges[] = [
+                'startFormatted' => $start->format('H:i'),
+                'endFormatted' => ($end ? $end->format('H:i') : '???'),
+            ];
+        }
+    }
+
+    return $invisibleRanges;
 };
 
 if ($profile) {
-    $day = new \DateTime('now', new DateTimeZone('Europe/Amsterdam'));
+    $day = new \DateTime('now', $profile->getTimezone());
 
     /** @var Workday[] $workdays */
     $workdays = [];
@@ -62,45 +93,52 @@ if ($profile) {
                     <div class="lead d-inline-block">Get to it.</span>
                 </div>
                 <hr />
-                <a class="btn btn-primary btn-sm float-end align-text-bottom" href="...">Add checkin</a>
+                <a class="btn btn-primary btn-sm float-end align-text-bottom" href="<?= $app->createUrl('work/checkin.php'); ?>">Add checkin</a>
                 <h2>Checkins</h2>
                 <p>
                     Auto break: <?= $profile->getAutoBreak() ? 'enabled' : 'disabled'; ?>.<br />
-                    FTE: 1.0
+                    FTE: <?= $profile->getFte(); ?><br />
+                    Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>
-                <h3>March 12023 <small class="text-muted">(-5.4h)</small></h3>
-                <h4>Week 121</h3>
+                <!-- <h4>Week ##</h3> -->
+                <?php $monthHeader = null; ?>
                 <?php foreach ($workdays as $workday): ?>
-                    <?= $workday->getDate()->format('l'); ?>:
-                    <?= round($workday->getTotalDuration() / 3600, 2); ?>
+                    <?php $newMonthHeader = $workday->getDate()->format('F Y'); ?>
+                    <?php if ($newMonthHeader !== $monthHeader): ?>
+                        <?php $monthHeader = $newMonthHeader; ?>
+                        <h3><?= $newMonthHeader; ?> <small class="text-muted">(-#.#h)</small></h3>
+                    <?php endif; ?>
+                    <span class="float-end">
+                        <?php if ($workday->getTotalDuration() > 0): ?>
+                            <strong><?= round($workday->getTotalDuration() / 3600, 2); ?>h</strong>
+                        <?php else: ?>
+                            0h
+                        <?php endif; ?>
+                    </span>
+                    <?= $workday->getDate()->format('l d-n'); ?>
                     <div class="progress" style="height: 25px;">
-                        <?php foreach ($workday->getRanges() as $range): ?>
-                            <?php
-                            $clip = $clipOffset($workday, $range['start'], $range['end']);
-                            if (!$clip) {
-                                continue;
-                            }
-                            ?>
+                        <?php foreach ($createBarRanges($workday) as $range): ?>
                             <div
-                                class="progress-bar text-start flex-row justify-content-between align-items-center p-2"
+                                class="progress-bar text-start flex-row justify-content-between align-items-center p-2 rounded <?= $range['colorClass']; ?>"
                                 role="progressbar"
-                                style="margin-left: <?= $clip['left']; ?>%; width: <?= $clip['width']; ?>%;"
+                                style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
                             >
-                                <span><?= $range['start']->format('H:i'); ?></span>
-                                <span><?= ($range['end'] ? $range['end']->format('H:i') : '???'); ?></span>
+                                <span><?= $range['startFormatted']; ?></span>
+                                <span><?= $range['endFormatted']; ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <p class="text-muted text-end">
+                        <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
+                        <?php if ($invisibleRanges): ?>
+                                Not shown:
+                                <?php foreach ($invisibleRanges as $range): ?>
+                                    <?= $range['startFormatted']; ?> -
+                                    <?= $range['endFormatted']; ?>
+                                <?php endforeach; ?>
+                        <?php endif; ?>
+                    </p>
                 <?php endforeach; ?>
-                <ul>
-                    <?php foreach ($profile->getCheckins() as $timestamp): ?>
-                        <?php 
-                        $date = new \DateTime(sprintf('@%s', $timestamp));
-                        $date->setTimezone(new \DateTimeZone('Europe/Amsterdam'));
-                        ?>
-                        <li><?= $date->format('Y-m-d H:i'); ?></li>
-                    <?php endforeach; ?>
-                </ul>
                 <hr />
                 <div class="text-end">
                     <a href="<?= $app->createUrl('auth.php', [
