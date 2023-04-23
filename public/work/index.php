@@ -60,12 +60,31 @@ $getInvisibleRanges = function (Workday $workday): array {
 };
 
 if ($profile) {
-    $day = new \DateTime('now', $profile->getTimezone());
+    $day = new \DateTime('today', $profile->getTimezone());
 
-    /** @var Workday[] $workdays */
-    $workdays = [];
-    for ($i = 0; $i < 100; $i++) {
-        $workdays[] = $app->getWorkday($profile, $day);
+    $months = [];
+    while (true) {
+        $month = (int)$day->format('Ym');
+        if (!isset($months[$month])) {
+            if (count($months) === 3) {
+                break;
+            }
+
+            $months[$month] = [
+                'workdays' => [],
+                'workSeconds' => 0,
+                'paidSeconds' => 0,
+            ];
+        }
+
+        $workday = $app->getWorkday($profile, $day);
+        $months[$month]['workdays'][] = $workday;
+        $months[$month]['workSeconds'] += $workday->getTotalDuration();
+        // TODO: Holidays are strange.
+        // if ((int)$day->format('N') <= 5) {
+        //     $months[$month]['paidSeconds'] += ($profile->getFte() * 8 * 3600);
+        // }
+
         $day->modify('-1 day');
     }
 }
@@ -100,44 +119,43 @@ if ($profile) {
                     FTE: <?= $profile->getFte(); ?><br />
                     Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>
-                <!-- <h4>Week ##</h3> -->
-                <?php $monthHeader = null; ?>
-                <?php foreach ($workdays as $workday): ?>
-                    <?php $newMonthHeader = $workday->getDate()->format('F Y'); ?>
-                    <?php if ($newMonthHeader !== $monthHeader): ?>
-                        <?php $monthHeader = $newMonthHeader; ?>
-                        <h3><?= $newMonthHeader; ?> <small class="text-muted">(-#.#h)</small></h3>
-                    <?php endif; ?>
-                    <span class="float-end">
-                        <?php if ($workday->getTotalDuration() > 0): ?>
-                            <strong><?= round($workday->getTotalDuration() / 3600, 2); ?>h</strong>
-                        <?php else: ?>
-                            0h
-                        <?php endif; ?>
-                    </span>
-                    <?= $workday->getDate()->format('l d-n'); ?>
-                    <div class="progress" style="height: 25px;">
-                        <?php foreach ($createBarRanges($workday) as $range): ?>
-                            <div
-                                class="progress-bar text-start flex-row justify-content-between align-items-center p-2 rounded <?= $range['colorClass']; ?>"
-                                role="progressbar"
-                                style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
-                            >
-                                <span><?= $range['startFormatted']; ?></span>
-                                <span><?= $range['endFormatted']; ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <p class="text-muted text-end">
-                        <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
-                        <?php if ($invisibleRanges): ?>
-                                Not shown:
-                                <?php foreach ($invisibleRanges as $range): ?>
-                                    <?= $range['startFormatted']; ?> -
-                                    <?= $range['endFormatted']; ?>
-                                <?php endforeach; ?>
-                        <?php endif; ?>
-                    </p>
+                <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds]): ?>
+                    <h3>
+                        <small class="text-muted float-end"><?= round($workSeconds / 3600, 2); ?>h</small>
+                        <?= reset($workdays)->getDate()->format('F Y'); ?>
+                    </h3>
+                    <?php foreach ($workdays as $workday): ?>
+                        <span class="float-end">
+                            <?php if ($workday->getTotalDuration() > 0): ?>
+                                <strong><?= round($workday->getTotalDuration() / 3600, 2); ?>h</strong>
+                            <?php else: ?>
+                                0h
+                            <?php endif; ?>
+                        </span>
+                        <?= $workday->getDate()->format('l d-n'); ?>
+                        <div class="progress" style="height: 25px;">
+                            <?php foreach ($createBarRanges($workday) as $range): ?>
+                                <div
+                                    class="progress-bar text-start flex-row justify-content-between align-items-center p-2 rounded <?= $range['colorClass']; ?>"
+                                    role="progressbar"
+                                    style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
+                                >
+                                    <span><?= $range['startFormatted']; ?></span>
+                                    <span><?= $range['endFormatted']; ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="text-muted text-end">
+                            <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
+                            <?php if ($invisibleRanges): ?>
+                                    Not shown:
+                                    <?php foreach ($invisibleRanges as $range): ?>
+                                        <?= $range['startFormatted']; ?> -
+                                        <?= $range['endFormatted']; ?>
+                                    <?php endforeach; ?>
+                            <?php endif; ?>
+                        </p>
+                    <?php endforeach; ?>
                 <?php endforeach; ?>
                 <hr />
                 <div class="text-end">
