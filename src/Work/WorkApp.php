@@ -21,8 +21,11 @@ class WorkApp extends App
         return $this->checkinService->addCheckin($profile, new \DateTimeImmutable('now'));
     }
 
-    public function getWorkdays(Profile $profile): array
+    /**
+     * @return Workday
+     */
+    public function getWorkday(Profile $profile, \DateTimeInterface $date): Workday
     {
-        return $this->checkinService->getWorkdays($profile);
+        return $this->checkinService->getWorkday($profile, $date);
     }
 }

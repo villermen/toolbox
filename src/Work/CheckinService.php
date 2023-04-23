@@ -15,26 +15,41 @@ class CheckinService
         $this->timezone = new \DateTimeZone('Europe/Amsterdam');
     }
 
-    /**
-     * @return Workday[]
-     */
-    public function getWorkdays(Profile $profile): array
+    // /**
+    //  * @return Workday[]
+    //  */
+    // public function getWorkdays(Profile $profile): array
+    // {
+    //     $checkins = $profile->getCheckins();
+    //     if (!$checkins) {
+    //         return [];
+    //     }
+
+    //     // while ($i < count($c))
+
+    //     // $firstCheckin = start($checkins);
+    //     // $lastCheckin = end($checkins);
+
+    //     // // Don't include Saturday/Sunday unless worked on?
+    //     // $workday = new Workday();
+    //     // $workday->addRange();
+
+    //     // TODO: How to correct missed checkouts? Show ??? total time?
+    // }
+
+    public function getWorkday(Profile $profile, \DateTimeInterface $date): Workday
     {
-        $checkins = $profile->getCheckins();
-        if (!$checkins) {
-            return [];
-        }
+        $dayStart = \DateTime::createFromInterface($date);
+        $dayStart->setTimezone($this->timezone);
+        $dayStart->setTime(0, 0, 0);
+        $dayEnd = clone $dayStart;
+        $dayEnd->setTime(23, 59, 59);
 
-        // while ($i < count($c))
+        $checkinsOnDay = array_values(array_filter($profile->getCheckins(), fn (\DateTimeInterface $checkin): bool => (
+            $checkin >= $dayStart && $checkin <= $dayEnd
+        )));
 
-        // $firstCheckin = start($checkins);
-        // $lastCheckin = end($checkins);
-
-        // // Don't include Saturday/Sunday unless worked on?
-        // $workday = new Workday();
-        // $workday->addRange();
-
-        // TODO: How to correct missed checkouts? Show ??? total time?
+        return new Workday($dayStart, $checkinsOnDay);
     }
 
     public function addCheckin(Profile $profile, \DateTimeInterface $time): bool
