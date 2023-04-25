@@ -16,9 +16,9 @@ class WorkApp extends App
         $this->checkinService = new CheckinService();
     }
 
-    public function addCheckin(Profile $profile): bool
+    public function addCheckin(Profile $profile, \DateTimeInterface $time): bool
     {
-        return $this->checkinService->addCheckin($profile, new \DateTimeImmutable('now'));
+        return $this->checkinService->addCheckin($profile, $time);
     }
 
     /**
@@ -27,5 +27,10 @@ class WorkApp extends App
     public function getWorkday(Profile $profile, \DateTimeInterface $date): Workday
     {
         return $this->checkinService->getWorkday($profile, $date);
+    }
+
+    public function clearWorkday(Workday $workday): void
+    {
+        $this->checkinService->clearWorkday($workday);
     }
 }

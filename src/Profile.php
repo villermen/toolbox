@@ -67,6 +67,14 @@ class Profile
     public function addCheckin(\DateTimeInterface $time): void
     {
         $this->checkins[] = $time->getTimestamp();
+        sort($this->checkins);
+    }
+
+    public function removeCheckin(\DateTimeInterface $time): void
+    {
+        $this->checkins = array_values(array_filter($this->checkins, fn (int $checkin): bool => (
+            $checkin !== $time->getTimestamp()
+        )));
     }
 
     public function getName(): ?string

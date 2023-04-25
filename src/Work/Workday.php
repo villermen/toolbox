@@ -2,6 +2,8 @@
 
 namespace Villermen\Toolbox\Work;
 
+use Villermen\Toolbox\Profile;
+
 class Workday
 {
     private \DateTimeImmutable $date;
@@ -9,24 +11,42 @@ class Workday
     /** @var array{start: \DateTimeInterface, end: \DateTimeInterface|null}[] */
     private array $ranges;
 
+    /**
+     * @param \DateTimeInterface[] $checkins
+     */
     public function __construct(
+        private Profile $profile,
         \DateTimeInterface $date,
-        array $checkins,
+        private array $checkins,
     ) {
+        $this->checkins = array_values($checkins);
         $this->date = \DateTimeImmutable::createFromInterface($date);
 
         $this->ranges = [];
-        for ($i = 0; $i < count($checkins); $i += 2) {
+        for ($i = 0; $i < count($this->checkins); $i += 2) {
             $this->ranges[] = [
-                'start' => $checkins[$i],
-                'end' => ($checkins[$i + 1] ?? null),
+                'start' => $this->checkins[$i],
+                'end' => ($this->checkins[$i + 1] ?? null),
             ];
         }
+    }
+
+    public function getProfile(): Profile
+    {
+        return $this->profile;
     }
 
     public function getDate(): \DateTimeInterface
     {
         return $this->date;
+    }
+
+    /**
+     * @return \DateTimeInterface[]
+     */
+    public function getCheckins(): array
+    {
+        return $this->checkins;
     }
 
     /**

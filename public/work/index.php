@@ -101,10 +101,15 @@ if ($profile) {
             integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
             crossorigin="anonymous"
         ></script>
-        <script src="work.js"></script>
+        <script src="work.js" defer></script>
     </head>
     <body>
         <div class="container mt-5 mb-5">
+            <?php foreach($app->popFlashMessages() as $flashMessage): ?>
+                <div class="<?= sprintf('alert alert-%s', $flashMessage['color']); ?>">
+                    <?= htmlspecialchars($flashMessage['message']); ?>
+                </div>
+            <?php endforeach; ?>
             <?php if ($profile): ?>
                 <div class="clearfix">
                     <img
@@ -117,7 +122,9 @@ if ($profile) {
                     <div class="lead d-inline-block">Get to it.</span>
                 </div>
                 <hr />
-                <a class="btn btn-primary btn-sm float-end align-text-bottom" href="<?= $app->createUrl('work/checkin.php'); ?>">Add checkin</a>
+                <a class="btn btn-primary btn-sm float-end align-text-bottom" href="<?= $app->createUrl('work/form.php', [
+                    'action' => 'checkin',
+                ]); ?>">Check in now</a>
                 <h2>Checkins</h2>
                 <p>
                     Auto break: <?= $profile->getAutoBreak() ? 'enabled' : 'disabled'; ?>.<br />
@@ -125,77 +132,132 @@ if ($profile) {
                     Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>
                 <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds]): ?>
-                    <div class="row">
-                        <div class="col-11">
-                            <h3>
-                                <small class="text-muted float-end"><?= round($workSeconds / 3600, 2); ?>h</small>
-                                <?= reset($workdays)->getDate()->format('F Y'); ?>
-                            </h3>
-                        </div>
-                    </div>
+                    <h3>
+                        <small class="text-muted float-end"><?= round($workSeconds / 3600, 2); ?>h</small>
+                        <?= reset($workdays)->getDate()->format('F Y'); ?>
+                    </h3>
                     <?php foreach ($workdays as $workday): ?>
-                        <?php /* TODO: Probably don't use columns for this. */ ?>
-                        <div class="row mb-2 gx-2">
-                            <div class="col-11">
-                                <div>
-                                    <span class="float-end">
-                                        <?php if ($workday->getTotalDuration() > 0): ?>
-                                            <strong><?= round($workday->getTotalDuration() / 3600, 2); ?>h</strong>
-                                        <?php else: ?>
-                                            0h
-                                        <?php endif; ?>
-                                    </span>
-                                    <?= $workday->getDate()->format('l d'); ?>
-                                </div>
-                                <div class="progress" style="height: 25px;">
-                                    <?php foreach ($createBarRanges($workday) as $range): ?>
-                                        <div
-                                            class="progress-bar text-start flex-row justify-content-between align-items-center p-2 rounded <?= $range['colorClass']; ?>"
-                                            role="progressbar"
-                                            style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
-                                        >
-                                            <span><?= $range['startFormatted']; ?></span>
-                                            <span><?= $range['endFormatted']; ?></span>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                                <div class="text-muted text-end">
-                                    <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
-                                    <?php if ($invisibleRanges): ?>
-                                        Not shown:
-                                        <?php foreach ($invisibleRanges as $range): ?>
-                                            <?= $range['startFormatted']; ?> -
-                                            <?= $range['endFormatted']; ?>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </div>
+                        <?php $dateValue = (int)$workday->getDate()->format('Ymd'); ?>
+                        <div>
+                            <span class="float-end">
+                                <?php if ($workday->getTotalDuration() > 0): ?>
+                                    <?= sprintf('%sh', round($workday->getTotalDuration() / 3600, 2)); ?>
+                                <?php endif; ?>
+                            </span>
+                            <?= $workday->getDate()->format('l d'); ?>
+                        </div>
+                        <div class="d-flex" style="height: 32px;">
+                            <div class="progress flex-grow-1 rounded-end-0 h-100">
+                                <?php foreach ($createBarRanges($workday) as $range): ?>
+                                    <div
+                                        class="progress-bar text-start flex-row justify-content-between align-items-center p-2 rounded gap-3 <?= $range['colorClass']; ?>"
+                                        role="progressbar"
+                                        style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
+                                        data-bs-toggle="tooltip"
+                                        title="<?= sprintf('%s - %s', $range['startFormatted'], $range['endFormatted']); ?>"
+                                    >
+                                        <span><?= $range['startFormatted']; ?></span>
+                                        <span><?= $range['endFormatted']; ?></span>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
-                            <div class="col-1 d-flex flex-column justify-content-center">
-                                <div class="dropdown">
-                                    <button
-                                        class="btn btn-sm btn-secondary dropdown-toggle"
-                                        type="button"
-                                        data-bs-toggle="dropdown"
-                                        data-bs-auto-close="outside"
-                                        aria-expanded="false"
-                                    ></button>
-                                    <ul class="dropdown-menu">
-                                        <li><h6 class="dropdown-header text-center"><?= $workday->getDate()->format('l d-n-Y'); ?></h6></li>
-                                        <div class="dropdown-divider"></div>
-                                        <form class="ps-2 pe-2" method="post">
-                                            <div class="mb-2 text-center d-flex align-items-center gap-1">
-                                                <input type="time" name="addRangeStart" class="form-control d-inline-block" style="flex: 1 0 80px;" required>
-                                                <div>-</div>
-                                                <input type="time" name="addRangeEnd" class="form-control d-inline-block" style="flex: 1 0 80px;" required>
-                                                <button type="submit" name="addRange" class="btn btn-primary">Add</button>
-                                            </div>
-                                        </form>
-                                        <div class="dropdown-divider"></div>
-                                        <li><a class="dropdown-item" href="#">Full day</a></li>
-                                        <li><a class="dropdown-item" href="#">Holiday</a></li>
-                                        <li><a class="dropdown-item" href="#">Clear checkins</a></li>
-                                    </ul>
-                                </div>
+                            <div class="dropdown">
+                                <button
+                                    class="btn btn-sm btn-secondary dropdown-toggle rounded-start-0 h-100"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    data-bs-auto-close="outside"
+                                    aria-expanded="false"
+                                ></button>
+                                <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header text-center"><?= $workday->getDate()->format('l d-n-Y'); ?></h6></li>
+                                    <div class="dropdown-divider"></div>
+                                    <form class="ps-2 pe-2" method="get" action="<?= $app->createUrl('work/form.php'); ?>">
+                                        <input type="hidden" name="date" value="<?= $dateValue; ?>" />
+                                        <div class="mb-2 text-center d-flex align-items-center gap-1">
+                                            <input type="time" name="start" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>
+                                            <div>-</div>
+                                            <input type="time" name="end" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>
+                                            <button type="submit" name="action" value="addRange" class="btn btn-primary btn-sm">Add</button>
+                                        </div>
+                                    </form>
+                                    <div class="dropdown-divider"></div>
+                                    <li>
+                                        <div 
+                                            <?php if ($workday->getRanges()): ?>
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="left"
+                                                title="Only available when there aren't any checkins yet. Clear them first."
+                                            <?php endif; ?>
+                                        >
+                                            <a
+                                                <?php if ($workday->getRanges()): ?>
+                                                    class="dropdown-item disabled"
+                                                <?php else: ?>
+                                                    class="dropdown-item"
+                                                    href="<?= $app->createUrl('work/form.php', [
+                                                        'date' => $dateValue,
+                                                        'action' => 'addFullDay',
+                                                    ]); ?>"
+                                                <?php endif; ?>
+                                            >Full day</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div 
+                                            <?php if ($workday->getRanges()): ?>
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="left"
+                                                title="Only available when there aren't any checkins yet. Clear them first."
+                                            <?php endif; ?>
+                                        >
+                                            <a
+                                                <?php if ($workday->getRanges()): ?>
+                                                    class="dropdown-item disabled"
+                                                <?php else: ?>
+                                                    class="dropdown-item"
+                                                    href="<?= $app->createUrl('work/form.php', [
+                                                        'date' => $dateValue,
+                                                        'action' => 'addHoliday',
+                                                    ]); ?>"
+                                                <?php endif; ?>
+                                            >Holiday</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div 
+                                            <?php if (!$workday->getRanges()): ?>
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="left"
+                                                title="Only available when there are any checkins."
+                                            <?php endif; ?>
+                                        >
+                                            <a
+                                                <?php if ($workday->getRanges()): ?>
+                                                    class="dropdown-item"
+                                                    href="<?= $app->createUrl('work/form.php', [
+                                                        'date' => $dateValue,
+                                                        'action' => 'clearCheckins',
+                                                    ]); ?>"
+                                                <?php else: ?>
+                                                    class="dropdown-item disabled"
+                                                <?php endif; ?>
+                                            >Clear checkins</a>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="text-muted">
+                                <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
+                                <?php if ($invisibleRanges): ?>
+                                    Not shown:
+                                    <?php foreach ($invisibleRanges as $range): ?>
+                                        <?= $range['startFormatted']; ?> -
+                                        <?= $range['endFormatted']; ?>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -204,13 +266,13 @@ if ($profile) {
                 <div class="text-end">
                     <a href="<?= $app->createUrl('auth.php', [
                         'logout' => '1',
-                        'redirect' => $app->createPath('work/index.php'),
+                        'redirect' => $app->createPath('work/'),
                     ]); ?>" class="btn btn-link">Log out</a>
                 </div>
             <?php else: ?>
                 <div class="text-center">
                     <a href="<?= $app->createUrl('auth.php', [
-                        'redirect' => $app->createPath('work/index.php'),
+                        'redirect' => $app->createPath('work/'),
                     ]); ?>" class="btn btn-primary">Log in with Google</a>
                 </div>
             <?php endif; ?>

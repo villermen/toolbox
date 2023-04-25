@@ -50,4 +50,22 @@ class App
     {
         return $this->config->createPath($path, $query);
     }
+
+    // TODO: Turn into service.
+    public function addFlashMessage(string $color, string $message): void
+    {
+        $flashMessages = $this->session->get('flashMessages') ?? [];
+        $flashMessages[] = ['color' => $color, 'message' => $message];
+        $this->session->set('flashMessages', $flashMessages);
+    }
+
+    /**
+     * @return array{color: string, message: string}[]
+     */
+    public function popFlashMessages(): array
+    {
+        $flashMessages = $this->session->get('flashMessages') ?? [];
+        $this->session->set('flashMessages', null);
+        return $flashMessages;
+    }
 }

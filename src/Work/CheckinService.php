@@ -40,7 +40,7 @@ class CheckinService
             $checkin >= $dayStart && $checkin <= $dayEnd
         )));
 
-        return new Workday($dayStart, $checkinsOnDay);
+        return new Workday($profile, $dayStart, $checkinsOnDay);
     }
 
     public function addCheckin(Profile $profile, \DateTimeInterface $time): bool
@@ -51,25 +51,21 @@ class CheckinService
         $checkins = $profile->getCheckins();
 
         $previousCheckin = null;
-        $nextCheckin = null;
+        $nextCheckinOnDay = null;
         foreach (array_reverse($checkins) as $checkin) {
-            if ($checkin > $time) {
-                $nextCheckin = $checkin;
-            } else {
+            if ($checkin <= $time) {
                 $previousCheckin = $checkin;
                 break;
+            } elseif ($checkin->format('Ymd') === $time->format('Ymd')) {
+                $nextCheckinOnDay = $checkin;
             }
         }
-        if ($previousCheckin) {
-            $previousCheckin = \DateTime::createFromInterface($previousCheckin);
-            $previousCheckin->setTimezone($profile->getTimezone());
-        }
-        if ($nextCheckin) {
-            $nextCheckin = \DateTime::createFromInterface($nextCheckin);
-            $nextCheckin->setTimezone($profile->getTimezone());
+        if ($nextCheckinOnDay) {
+            $nextCheckinOnDay = \DateTime::createFromInterface($nextCheckinOnDay);
+            $nextCheckinOnDay->setTimezone($profile->getTimezone());
         }
 
-        if ($previousCheckin && !$nextCheckin) {
+        if ($previousCheckin && !$nextCheckinOnDay) {
             $diff = ($time->getTimestamp() - $previousCheckin->getTimestamp());
             $previousDay = (int)$previousCheckin->format('Ymd');
             $currentDay = (int)$time->format('Ymd');
@@ -79,8 +75,9 @@ class CheckinService
                 return false;
             }
 
-            // Correct forgotten checkins: Checkins that span a day and time difference is big enough.
-            if ($previousDay === $currentDay - 1 && $diff >= 6 * 3600) {
+            // Add end-of-day and start-of-day checkin when checkin spans midnight. Leaves forgotten checkins (when
+            // time difference is too great).
+            if ($previousDay === $currentDay - 1 && $diff <= 6 * 3600) {
                 $dayEnd = \DateTime::createFromInterface($previousCheckin);
                 $dayEnd->setTime(23, 59, 59);
                 $dayStart = \DateTime::createFromInterface($time);
@@ -107,5 +104,14 @@ class CheckinService
         $profile->addCheckin($time);
         $profile->save();
         return true;
+    }
+
+    public function clearWorkday(Workday $workday): void
+    {
+        $profile = $workday->getProfile();
+        foreach ($workday->getCheckins() as $checkin) {
+            $profile->removeCheckin($checkin);
+        }
+        $profile->save();
     }
 }
