@@ -228,6 +228,27 @@ if ($profile) {
                                     </li>
                                     <li>
                                         <div 
+                                            <?php if (count($workday->getRanges()) < 2): ?>
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="left"
+                                                title="Only available when there are multiple ranges."
+                                            <?php endif; ?>
+                                        >
+                                            <a
+                                                <?php if (count($workday->getRanges()) >= 2): ?>
+                                                    class="dropdown-item"
+                                                    href="<?= $app->createUrl('work/form.php', [
+                                                        'date' => $dateValue,
+                                                        'action' => 'removeBreak',
+                                                    ]); ?>"
+                                                <?php else: ?>
+                                                    class="dropdown-item disabled"
+                                                <?php endif; ?>
+                                            >Remove break</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div 
                                             <?php if (!$workday->getRanges()): ?>
                                                 data-bs-toggle="tooltip"
                                                 data-bs-placement="left"
@@ -244,7 +265,7 @@ if ($profile) {
                                                 <?php else: ?>
                                                     class="dropdown-item disabled"
                                                 <?php endif; ?>
-                                            >Clear checkins</a>
+                                            >Clear day</a>
                                         </div>
                                     </li>
                                 </ul>

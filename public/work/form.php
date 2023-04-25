@@ -51,6 +51,13 @@ if ($action === 'checkin') {
     $workday = $app->getWorkday($profile, $date);
     $app->clearWorkday($workday);
     $app->addFlashMessage('success', sprintf('Cleared checkins for %s.', $date->format('j-n-Y')));
+} elseif ($action === 'removeBreak') {
+    $workday = $app->getWorkday($profile, $date);
+    if ($app->removeBreak($workday)) {
+        $app->addFlashMessage('success', sprintf('Removed break for %s.', $date->format('j-n-Y')));
+    } else {
+        $app->addFlashMessage('danger', sprintf('Failed to remove break for %s.', $date->format('j-n-Y')));
+    }
 } else {
     $app->addFlashMessage('danger', 'Invalid action specified.');
 }

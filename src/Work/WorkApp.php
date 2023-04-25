@@ -33,4 +33,9 @@ class WorkApp extends App
     {
         $this->checkinService->clearWorkday($workday);
     }
+
+    public function removeBreak(Workday $workday): bool
+    {
+        return $this->checkinService->removeBreak($workday);
+    }
 }

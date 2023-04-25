@@ -6,28 +6,6 @@ use Villermen\Toolbox\Profile;
 
 class CheckinService
 {
-    // /**
-    //  * @return Workday[]
-    //  */
-    // public function getWorkdays(Profile $profile): array
-    // {
-    //     $checkins = $profile->getCheckins();
-    //     if (!$checkins) {
-    //         return [];
-    //     }
-
-    //     // while ($i < count($c))
-
-    //     // $firstCheckin = start($checkins);
-    //     // $lastCheckin = end($checkins);
-
-    //     // // Don't include Saturday/Sunday unless worked on?
-    //     // $workday = new Workday();
-    //     // $workday->addRange();
-
-    //     // TODO: How to correct missed checkouts? Show ??? total time?
-    // }
-
     public function getWorkday(Profile $profile, \DateTimeInterface $date): Workday
     {
         $dayStart = \DateTime::createFromInterface($date);
@@ -113,5 +91,19 @@ class CheckinService
             $profile->removeCheckin($checkin);
         }
         $profile->save();
+    }
+
+    public function removeBreak(Workday $workday): bool
+    {
+        $profile = $workday->getProfile();
+        $ranges = $workday->getRanges();
+        if (count($ranges) < 2 || !$ranges[0]['end']) {
+            return false;
+        }
+
+        $profile->removeCheckin($ranges[0]['end']);
+        $profile->removeCheckin($ranges[1]['start']);
+        $profile->save();
+        return true;
     }
 }
