@@ -31,7 +31,7 @@ if ($action === 'checkin') {
     if ($app->addCheckin($profile, new \DateTimeImmutable('now', $profile->getTimezone()))) {
         $app->addFlashMessage('success', 'You were checked in/out.');
     } else {
-        $app->addFlashMessage('success', 'Failed to add checkin. Did you scan twice?');
+        $app->addFlashMessage('success', 'Failed to add checkin. Did you scan twice in quick succession?');
     }
 } elseif ($action === 'addRange') {
     // TODO: Do I care about minutes > 59?
