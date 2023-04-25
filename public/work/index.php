@@ -134,7 +134,8 @@ if ($profile) {
                         </div>
                     </div>
                     <?php foreach ($workdays as $workday): ?>
-                        <div class="row mb-2">
+                        <?php /* TODO: Probably don't use columns for this. */ ?>
+                        <div class="row mb-2 gx-2">
                             <div class="col-11">
                                 <div>
                                     <span class="float-end">
@@ -190,6 +191,7 @@ if ($profile) {
                                             </div>
                                         </form>
                                         <div class="dropdown-divider"></div>
+                                        <li><a class="dropdown-item" href="#">Full day</a></li>
                                         <li><a class="dropdown-item" href="#">Holiday</a></li>
                                         <li><a class="dropdown-item" href="#">Clear checkins</a></li>
                                     </ul>
