@@ -8,6 +8,21 @@ require_once('../../vendor/autoload.php');
 $app = new WorkApp();
 $profile = $app->getAuthenticatedProfile();
 
+$subtitles = [
+    'Get to it.',
+    'You got this.',
+    'It\'s all you.',
+    'Go on.',
+    'The thing you excel at.',
+    'Get it done.',
+    'You know what to do.',
+    'Go shine.',
+    'You look lovely today.',
+];
+mt_srand((int)date('Ymd'));
+$subtitle = $subtitles[mt_rand(0, count($subtitles) - 1)];
+mt_srand();
+
 // TODO: In progress on current day, simulate to give an impression? Will be hard with auto breaking.
 // TODO: Start and end can exceed bounds.
 $createBarRanges = function (Workday $workday): array {
@@ -116,26 +131,25 @@ if ($profile) {
                         alt="<?= htmlspecialchars($profile->getName()); ?>"
                     />
                     <h1 class="d-inline-block me-3">Work</h1>
-                    <div class="lead d-inline-block">Get to it.</span>
+                    <div class="lead d-inline-block"><?= $subtitle; ?></span>
                 </div>
                 <hr />
                 <a class="btn btn-primary btn-sm float-end align-text-bottom" href="<?= $app->createUrl('work/form.php', [
                     'action' => 'checkin',
                 ]); ?>">Check in now</a>
-                <h2>Checkins</h2>
                 <p>
                     Auto break: <?= $profile->getAutoBreak() ? 'enabled' : 'disabled'; ?>.<br />
                     Schedule: <?= implode(',', $profile->getSchedule()); ?>.<br />
                     Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>
                 <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds, 'paidSeconds' => $paidSeconds]): ?>
-                    <h3>
+                    <h2>
                         <small class="text-muted float-end">
                             <?= sprintf('%.2Fh', $workSeconds / 3600); ?>
                             (<?= sprintf('%+.2Fh', ($workSeconds - $paidSeconds) / 3600); ?>)
                         </small>
                         <?= reset($workdays)->getDate()->format('F Y'); ?>
-                    </h3>
+                    </h2>
                     <?php foreach ($workdays as $workday): ?>
                         <?php $dateValue = (int)$workday->getDate()->format('Ymd'); ?>
                         <div>
