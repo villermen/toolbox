@@ -80,10 +80,9 @@ if ($profile) {
         $workday = $app->getWorkday($profile, $day);
         $months[$month]['workdays'][] = $workday;
         $months[$month]['workSeconds'] += $workday->getTotalDuration();
-        // TODO: Holidays are strange.
-        // if ((int)$day->format('N') <= 5) {
-        //     $months[$month]['paidSeconds'] += ($profile->getFte() * 8 * 3600);
-        // }
+        if ((int)$day->format('N') <= 5) {
+            $months[$month]['paidSeconds'] += ($profile->getFte() * 8 * 3600);
+        }
 
         $day->modify('-1 day');
     }
@@ -131,9 +130,12 @@ if ($profile) {
                     FTE: <?= $profile->getFte(); ?><br />
                     Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>
-                <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds]): ?>
+                <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds, 'paidSeconds' => $paidSeconds]): ?>
                     <h3>
-                        <small class="text-muted float-end"><?= round($workSeconds / 3600, 2); ?>h</small>
+                        <small class="text-muted float-end">
+                            <?= sprintf('%.2Fh', $workSeconds / 3600); ?>
+                            (<?= sprintf('%+.2Fh', ($workSeconds - $paidSeconds) / 3600); ?>)
+                        </small>
                         <?= reset($workdays)->getDate()->format('F Y'); ?>
                     </h3>
                     <?php foreach ($workdays as $workday): ?>
