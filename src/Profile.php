@@ -92,9 +92,12 @@ class Profile
         return new \DateTimeZone('Europe/Amsterdam');
     }
 
-    public function getFte(): float
+    /**
+     * @return int[]
+     */
+    public function getSchedule(): array
     {
-        return 0.8;
+        return [8, 0, 8, 8, 8, 0, 0]; // TODO: What about 2-weekly?
     }
 
     public function save(): void

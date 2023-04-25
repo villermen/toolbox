@@ -80,9 +80,7 @@ if ($profile) {
         $workday = $app->getWorkday($profile, $day);
         $months[$month]['workdays'][] = $workday;
         $months[$month]['workSeconds'] += $workday->getTotalDuration();
-        if ((int)$day->format('N') <= 5) {
-            $months[$month]['paidSeconds'] += ($profile->getFte() * 8 * 3600);
-        }
+        $months[$month]['paidSeconds'] += ($profile->getSchedule()[(int)$day->format('N') - 1] * 3600);
 
         $day->modify('-1 day');
     }
@@ -127,7 +125,7 @@ if ($profile) {
                 <h2>Checkins</h2>
                 <p>
                     Auto break: <?= $profile->getAutoBreak() ? 'enabled' : 'disabled'; ?>.<br />
-                    FTE: <?= $profile->getFte(); ?><br />
+                    Schedule: <?= implode(',', $profile->getSchedule()); ?>.<br />
                     Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>
                 <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds, 'paidSeconds' => $paidSeconds]): ?>
