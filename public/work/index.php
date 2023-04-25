@@ -96,6 +96,11 @@ if ($profile) {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Work</title>
         <link rel="stylesheet" href="../style.css">
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+            crossorigin="anonymous"
+        ></script>
         <script src="work.js"></script>
     </head>
     <body>
@@ -120,41 +125,77 @@ if ($profile) {
                     Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>
                 <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds]): ?>
-                    <h3>
-                        <small class="text-muted float-end"><?= round($workSeconds / 3600, 2); ?>h</small>
-                        <?= reset($workdays)->getDate()->format('F Y'); ?>
-                    </h3>
-                    <?php foreach ($workdays as $workday): ?>
-                        <span class="float-end">
-                            <?php if ($workday->getTotalDuration() > 0): ?>
-                                <strong><?= round($workday->getTotalDuration() / 3600, 2); ?>h</strong>
-                            <?php else: ?>
-                                0h
-                            <?php endif; ?>
-                        </span>
-                        <?= $workday->getDate()->format('l d-n'); ?>
-                        <div class="progress" style="height: 25px;">
-                            <?php foreach ($createBarRanges($workday) as $range): ?>
-                                <div
-                                    class="progress-bar text-start flex-row justify-content-between align-items-center p-2 rounded <?= $range['colorClass']; ?>"
-                                    role="progressbar"
-                                    style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
-                                >
-                                    <span><?= $range['startFormatted']; ?></span>
-                                    <span><?= $range['endFormatted']; ?></span>
-                                </div>
-                            <?php endforeach; ?>
+                    <div class="row">
+                        <div class="col-11">
+                            <h3>
+                                <small class="text-muted float-end"><?= round($workSeconds / 3600, 2); ?>h</small>
+                                <?= reset($workdays)->getDate()->format('F Y'); ?>
+                            </h3>
                         </div>
-                        <p class="text-muted text-end">
-                            <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
-                            <?php if ($invisibleRanges): ?>
-                                    Not shown:
-                                    <?php foreach ($invisibleRanges as $range): ?>
-                                        <?= $range['startFormatted']; ?> -
-                                        <?= $range['endFormatted']; ?>
+                    </div>
+                    <?php foreach ($workdays as $workday): ?>
+                        <div class="row mb-2">
+                            <div class="col-11">
+                                <div>
+                                    <span class="float-end">
+                                        <?php if ($workday->getTotalDuration() > 0): ?>
+                                            <strong><?= round($workday->getTotalDuration() / 3600, 2); ?>h</strong>
+                                        <?php else: ?>
+                                            0h
+                                        <?php endif; ?>
+                                    </span>
+                                    <?= $workday->getDate()->format('l d'); ?>
+                                </div>
+                                <div class="progress" style="height: 25px;">
+                                    <?php foreach ($createBarRanges($workday) as $range): ?>
+                                        <div
+                                            class="progress-bar text-start flex-row justify-content-between align-items-center p-2 rounded <?= $range['colorClass']; ?>"
+                                            role="progressbar"
+                                            style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
+                                        >
+                                            <span><?= $range['startFormatted']; ?></span>
+                                            <span><?= $range['endFormatted']; ?></span>
+                                        </div>
                                     <?php endforeach; ?>
-                            <?php endif; ?>
-                        </p>
+                                </div>
+                                <div class="text-muted text-end">
+                                    <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
+                                    <?php if ($invisibleRanges): ?>
+                                        Not shown:
+                                        <?php foreach ($invisibleRanges as $range): ?>
+                                            <?= $range['startFormatted']; ?> -
+                                            <?= $range['endFormatted']; ?>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="col-1 d-flex flex-column justify-content-center">
+                                <div class="dropdown">
+                                    <button
+                                        class="btn btn-sm btn-secondary dropdown-toggle"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        aria-expanded="false"
+                                    ></button>
+                                    <ul class="dropdown-menu">
+                                        <li><h6 class="dropdown-header text-center"><?= $workday->getDate()->format('l d-n-Y'); ?></h6></li>
+                                        <div class="dropdown-divider"></div>
+                                        <form class="ps-2 pe-2" method="post">
+                                            <div class="mb-2 text-center d-flex align-items-center gap-1">
+                                                <input type="time" name="addRangeStart" class="form-control d-inline-block" style="flex: 1 0 80px;" required>
+                                                <div>-</div>
+                                                <input type="time" name="addRangeEnd" class="form-control d-inline-block" style="flex: 1 0 80px;" required>
+                                                <button type="submit" name="addRange" class="btn btn-primary">Add</button>
+                                            </div>
+                                        </form>
+                                        <div class="dropdown-divider"></div>
+                                        <li><a class="dropdown-item" href="#">Holiday</a></li>
+                                        <li><a class="dropdown-item" href="#">Clear checkins</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
                 <?php endforeach; ?>
                 <hr />
