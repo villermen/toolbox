@@ -46,7 +46,7 @@ if ($action === 'checkin') {
         $app->addFlashMessage('danger', 'Please specify a valid time range.');
     }
 } elseif ($action === 'addHoliday') {
-    $app->addFlashMessage('danger', 'Logging holidays is not implemented yet.');
+    $app->addFlashMessage('danger', 'Logging holidays is not implemented yet. Add a full day instead.');
 } elseif ($action === 'clearCheckins') {
     $workday = $app->getWorkday($profile, $date);
     $app->clearWorkday($workday);
