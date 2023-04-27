@@ -24,29 +24,43 @@ $subtitle = $subtitles[mt_rand(0, count($subtitles) - 1)];
 mt_srand();
 
 // TODO: In progress on current day, simulate to give an impression? Will be hard with auto breaking.
-// TODO: Start and end can exceed bounds.
 $createBarRanges = function (Workday $workday): array {
-    $visibleDayStart = 7 * 3600 + $workday->getDate()->getTimestamp();
-    $visibleDayEnd = 20 * 3600 + $workday->getDate()->getTimestamp();
-    $visibleDaySeconds = ($visibleDayEnd - $visibleDayStart);
+    $visibleDayStart = \DateTime::createFromInterface($workday->getDate());
+    $visibleDayStart->setTime(7, 0);
+    $visibleDayEnd = \DateTime::createFromInterface($workday->getDate());
+    $visibleDayEnd->setTime(20, 0);
+    $visibleDaySeconds = ($visibleDayEnd->getTimestamp() - $visibleDayStart->getTimestamp());
 
     $x = 0;
     $barRanges = [];
     foreach ($workday->getRanges() as ['start' => $start, 'end' => $end]) {
-        if ($end && $end->getTimestamp() < $visibleDayStart || $start->getTimestamp() > $visibleDayEnd) {
+        // Skip invisible ranges.
+        if ($end && $end < $visibleDayStart || $start > $visibleDayEnd) {
             continue;
         }
 
-        $marginLeft = ($start->getTimestamp() - $visibleDayStart) / $visibleDaySeconds * 100.0 - $x;
+        $visibleStart = max($start, $visibleDayStart);
         if ($end) {
-            $width = ($end->getTimestamp() - $start->getTimestamp()) / $visibleDaySeconds * 100.0;
+            $visibleEnd = $end;
         } else {
-            $width = 10.0;
-        }
+            $now = new \DateTimeImmutable('now', $workday->getProfile()->getTimezone());
+            
+            if ($workday->getDate()->format('Ymd') === $now->format('Ymd')) {
+                $visibleEnd = $now;
+            } else {
+                $visibleEnd = \DateTime::createFromInterface($visibleStart);
+                $visibleEnd->modify('+ 1 hour');
+            }
+        } 
+        $visibleEnd = min($visibleEnd, $visibleDayEnd);
+
+        $marginLeft = ($visibleStart->getTimestamp() - $visibleDayStart->getTimestamp()) / $visibleDaySeconds * 100.0 - $x;
+        $width = ($visibleEnd->getTimestamp() - $start->getTimestamp()) / $visibleDaySeconds * 100.0;
 
         $barRanges[] = [
-            'startFormatted' => $start->format('H:i'),
-            'endFormatted' => ($end ? $end->format('H:i') : '???'),
+            'startFormatted' => ($visibleStart === $start ? $start->format('H:i') : '~'),
+            'endFormatted' => ($end && $visibleEnd === $end ? $end->format('H:i') : '~'),
+            'rangeFormatted' => sprintf('%s - %s', $start->format('H:i'), ($end ? $end->format('H:i') : '???')),
             'marginLeft' => sprintf('%s%%', $marginLeft),
             'width' => sprintf('%s%%', $width),
             'colorClass' => ($end ? 'bg-primary' : 'bg-warning'),
@@ -58,12 +72,15 @@ $createBarRanges = function (Workday $workday): array {
     return $barRanges;
 };
 $getInvisibleRanges = function (Workday $workday): array {
-    $visibleDayStart = 6 * 3600 + $workday->getDate()->getTimestamp();
-    $visibleDayEnd = 20 * 3600 + $workday->getDate()->getTimestamp();
+    $visibleDayStart = \DateTime::createFromInterface($workday->getDate());
+    $visibleDayStart->setTime(7, 0);
+    $visibleDayEnd = \DateTime::createFromInterface($workday->getDate());
+    $visibleDayEnd->setTime(20, 0);
 
     $invisibleRanges = [];
     foreach ($workday->getRanges() as ['start' => $start, 'end' => $end]) {
-        if ($end && $end->getTimestamp() < $visibleDayStart || $start->getTimestamp() > $visibleDayEnd) {
+        // Only include invisible ranges.
+        if ($end && $end < $visibleDayStart || $start > $visibleDayEnd) {
             $invisibleRanges[] = [
                 'startFormatted' => $start->format('H:i'),
                 'endFormatted' => ($end ? $end->format('H:i') : '???'),
@@ -173,7 +190,7 @@ if ($profile) {
                                         role="progressbar"
                                         style="margin-left: <?= $range['marginLeft']; ?>; width: <?= $range['width']; ?>;"
                                         data-bs-toggle="tooltip"
-                                        title="<?= sprintf('%s - %s', $range['startFormatted'], $range['endFormatted']); ?>"
+                                        title="<?= $range['rangeFormatted']; ?>"
                                     >
                                         <span><?= $range['startFormatted']; ?></span>
                                         <span><?= $range['endFormatted']; ?></span>
