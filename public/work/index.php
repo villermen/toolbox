@@ -194,7 +194,11 @@ if ($profile) {
                                     <form class="ps-2 pe-2" method="get" action="<?= $app->createUrl('work/form.php'); ?>">
                                         <input type="hidden" name="date" value="<?= $dateValue; ?>" />
                                         <div class="mb-2 text-center d-flex align-items-center gap-1">
-                                            <input type="time" name="start" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>
+                                            <?php if ($workday->isComplete()): ?>
+                                                <input type="time" name="start" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>
+                                            <?php else: ?>
+                                                <div><?= $workday->getLastCheckin()->format('H:i'); ?></div>
+                                            <?php endif; ?>
                                             <div>-</div>
                                             <input type="time" name="end" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>
                                             <button type="submit" name="action" value="addRange" class="btn btn-primary btn-sm">Add</button>

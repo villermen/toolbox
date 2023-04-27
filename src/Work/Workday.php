@@ -75,4 +75,10 @@ class Workday
     {
         return (count($this->getCheckins()) % 2 === 0);
     }
+
+    public function getLastCheckin(): ?\DateTimeInterface
+    {
+        $checkins = $this->getCheckins();
+        return (end($checkins) ?: null);
+    }
 }

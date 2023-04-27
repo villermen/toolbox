@@ -27,6 +27,9 @@ if ($action === 'addFullDay') {
     $end = 1700;
 }
 
+$start = ($date && $start < 2400 && $start % 100 < 60 ? $date->setTime((int)($start / 100), $start % 100) : null);
+$end = ($date && $end < 2400 && $end % 100 < 60 ? $date->setTime((int)($end / 100), $end % 100) : null);
+
 if ($action === 'checkin') {
     $now = new \DateTimeImmutable('now', $profile->getTimezone());
     if ($app->addCheckin($profile, $now)) {
@@ -36,16 +39,23 @@ if ($action === 'checkin') {
         $app->addFlashMessage('success', 'Failed to check in/out. Did you scan twice by accident?');
     }
 } elseif ($action === 'addRange') {
-    // TODO: Do I care about minutes > 59?
-    // TODO: addRange() and verify overlapping?
-    if ($date && $start < 2400 && $end < 2400 && $start < $end) {
-        $start = $date->setTime((int)($start / 100), $start % 100);
-        $end = $date->setTime((int)($end / 100), $end % 100);
-        $app->addCheckin($profile, $start);
-        $app->addCheckin($profile, $end);
-        $app->addFlashMessage('success', sprintf('Added range for %s.', $date->format('j-n-Y')));
+    // TODO: Verify no overlap with existing ranges?
+    $workday = $app->getWorkday($profile, $date);
+    if ($workday->isComplete()) {
+        if ($start && $end && $start < $end) {
+            $app->addCheckin($profile, $start);
+            $app->addCheckin($profile, $end);
+            $app->addFlashMessage('success', sprintf('Added range for %s.', $date->format('j-n-Y')));
+        } else {
+            $app->addFlashMessage('danger', 'Please specify a valid time range.');
+        }
     } else {
-        $app->addFlashMessage('danger', 'Please specify a valid time range.');
+        if ($end && $end > $workday->getLastCheckin()) {
+            $app->addCheckin($profile, $end);
+            $app->addFlashMessage('success', sprintf('Added end time for %s.', $date->format('j-n-Y')));
+        } else {
+            $app->addFlashMessage('danger', 'Please specify a valid end time.');
+        }
     }
 } elseif ($action === 'addHoliday') {
     $app->addFlashMessage('danger', 'Logging holidays is not implemented yet. Add a full day instead.');
