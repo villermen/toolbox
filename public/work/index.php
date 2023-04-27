@@ -148,12 +148,12 @@ if ($profile) {
                 <div class="clearfix">
                     <img
                         class="border border-dark rounded-circle float-end align-middle"
-                        style="height: 48px;"
+                        style="height: 42px;"
                         src="<?= htmlspecialchars($profile->getAvatar()); ?>"
                         alt="<?= htmlspecialchars($profile->getName()); ?>"
                     />
-                    <h1 class="d-inline-block me-3">Work</h1>
-                    <div class="lead d-inline-block"><?= $subtitle; ?></span>
+                    <h1 class="d-inline-block me-3 mb-0">Work</h1>
+                    <div class="lead d-inline-block"><?= $subtitle; ?></div>
                 </div>
                 <hr />
                 <a class="btn btn-primary btn-sm float-end align-text-bottom" href="<?= $app->createUrl('work/form.php', [
