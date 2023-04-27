@@ -176,8 +176,10 @@ if ($profile) {
                         <?php $dateValue = (int)$workday->getDate()->format('Ymd'); ?>
                         <div>
                             <span class="float-end">
-                                <?php if ($workday->getTotalDuration() > 0): ?>
+                                <?php if ($workday->isComplete() && $workday->getTotalDuration() > 0): ?>
                                     <?= sprintf('%sh', round($workday->getTotalDuration() / 3600, 2)); ?>
+                                <?php elseif (!$workday->isComplete()): ?>
+                                    ???
                                 <?php endif; ?>
                             </span>
                             <?= $workday->getDate()->format('l d'); ?>
