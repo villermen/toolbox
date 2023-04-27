@@ -28,10 +28,12 @@ if ($action === 'addFullDay') {
 }
 
 if ($action === 'checkin') {
-    if ($app->addCheckin($profile, new \DateTimeImmutable('now', $profile->getTimezone()))) {
-        $app->addFlashMessage('success', 'You were checked in/out.');
+    $now = new \DateTimeImmutable('now', $profile->getTimezone());
+    if ($app->addCheckin($profile, $now)) {
+        $workday = $app->getWorkday($profile, $now);
+        $app->addFlashMessage('success', sprintf('You were checked %s.', ($workday->isComplete() ? 'out' : 'in')));
     } else {
-        $app->addFlashMessage('success', 'Failed to add checkin. Did you scan twice in quick succession?');
+        $app->addFlashMessage('success', 'Failed to check in/out. Did you scan twice by accident?');
     }
 } elseif ($action === 'addRange') {
     // TODO: Do I care about minutes > 59?

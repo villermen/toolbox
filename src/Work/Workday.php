@@ -70,4 +70,9 @@ class Workday
 
         return $duration;
     }
+
+    public function isComplete(): bool
+    {
+        return (count($this->getCheckins()) % 2 === 0);
+    }
 }

@@ -75,9 +75,9 @@ $getInvisibleRanges = function (Workday $workday): array {
 };
 
 if ($profile) {
-    $day = new \DateTime('today', $profile->getTimezone());
-
+    $currentWorkday = null;
     $months = [];
+    $day = new \DateTime('today', $profile->getTimezone());
     while (true) {
         $month = (int)$day->format('Ym');
         if (!isset($months[$month])) {
@@ -96,6 +96,10 @@ if ($profile) {
         $months[$month]['workdays'][] = $workday;
         $months[$month]['workSeconds'] += $workday->getTotalDuration();
         $months[$month]['paidSeconds'] += ($profile->getSchedule()[(int)$day->format('N') - 1] * 3600);
+
+        if (!$currentWorkday) {
+            $currentWorkday = $workday;
+        }
 
         $day->modify('-1 day');
     }
@@ -118,8 +122,9 @@ if ($profile) {
     <body>
         <div class="container mt-5 mb-5">
             <?php foreach($app->popFlashMessages() as $flashMessage): ?>
-                <div class="<?= sprintf('alert alert-%s', $flashMessage['color']); ?>">
+                <div class="<?= sprintf('alert alert-dismissible alert-%s fade show', $flashMessage['color']); ?>">
                     <?= htmlspecialchars($flashMessage['message']); ?>
+                    <button type="button" class="btn btn-sm btn-close" data-bs-dismiss="alert" aria-label="close"></button>
                 </div>
             <?php endforeach; ?>
             <?php if ($profile): ?>
@@ -136,7 +141,7 @@ if ($profile) {
                 <hr />
                 <a class="btn btn-primary btn-sm float-end align-text-bottom" href="<?= $app->createUrl('work/form.php', [
                     'action' => 'checkin',
-                ]); ?>">Check in now</a>
+                ]); ?>"><?= sprintf('Check %s now', $currentWorkday->isComplete() ? 'in' : 'out'); ?></a>
                 <p>
                     Auto break: <?= $profile->getAutoBreak() ? 'enabled' : 'disabled'; ?>.<br />
                     Schedule: <?= implode(',', $profile->getSchedule()); ?>.<br />
