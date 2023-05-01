@@ -2,6 +2,8 @@
 
 namespace Villermen\Toolbox;
 
+use Webmozart\Assert\Assert;
+
 class Profile
 {
     public static function load(string $profileId): self
@@ -36,22 +38,35 @@ class Profile
         $this->auth = $auth;
     }
 
-    public function getAutoBreak(): bool
+    /**
+     * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable}|null
+     */
+    public function getAutoBreak(?\DateTimeInterface $date = null): ?array
     {
-        return ($this->settings['autoBreak'] ?? true);
+        $date = ($date
+            ? \DateTimeImmutable::createFromInterface($date)->setTimezone($this->getTimezone())
+            : new \DateTimeImmutable('today', $this->getTimezone())
+        );
+
+        return [
+            $date->modify('12:45'),
+            $date->modify('13:15'),
+        ];
     }
 
-    public function setAutoBreak(bool $autoBreak): void
-    {
-        if ($autoBreak) {
-            unset($this->settings['autoBreak']);
-        } else {
-            $this->settings['autoBreak'] = false;
-        }
-    }
+    // public function setAutoBreak(?\DateTimeInterface $start, ?\DateTimeInterface $end): void
+    // {
+    //     if ($start) {
+    //         Assert::eq($start->format('Ymd'), $end->format('Ymd'));
+    //         Assert::lessThan($start, $end);
+    //         $this->settings['autoBreak'] = [$start->format('h:i'), $end->format('h:i')];
+    //     } else {
+    //         unset($this->settings['autoBreak']);
+    //     }
+    // }
 
     /**
-     * @return \DateTimeInterface[]
+     * @return \DateTimeImmutable[]
      */
     public function getCheckins(): array
     {

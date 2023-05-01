@@ -160,7 +160,8 @@ if ($profile) {
                     'action' => 'checkin',
                 ]); ?>"><?= sprintf('Check %s now', $currentWorkday->isComplete() ? 'in' : 'out'); ?></a>
                 <p>
-                    Auto break: <?= $profile->getAutoBreak() ? 'enabled' : 'disabled'; ?>.<br />
+                    <?php [$breakStart, $breakEnd] = $profile->getAutoBreak(); ?>
+                    Auto break: <?= $breakStart ? sprintf('%s - %s', $breakStart->format('H:i'), $breakEnd->format('H:i')) : 'disabled'; ?>.<br />
                     Schedule: <?= implode(',', $profile->getSchedule()); ?>.<br />
                     Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
                 </p>

@@ -68,10 +68,7 @@ class CheckinService
             // Auto break.
             // TODO: Will add break when there's a completed range.
             if ($profile->getAutoBreak() && $previousDay === $currentDay) {
-                $breakStart = \DateTime::createFromInterface($time);
-                $breakStart->setTime(12, 45);
-                $breakEnd = \DateTime::createFromInterface($time);
-                $breakEnd->setTime(13, 15);
+                [$breakStart, $breakEnd] = $profile->getAutoBreak($time);
 
                 if ($previousCheckin < $breakStart && $time > $breakEnd) {
                     $profile->addCheckin($breakStart);
