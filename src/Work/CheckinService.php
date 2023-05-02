@@ -3,24 +3,10 @@
 namespace Villermen\Toolbox\Work;
 
 use Villermen\Toolbox\Profile;
+use Webmozart\Assert\Assert;
 
 class CheckinService
 {
-    public function getWorkday(Profile $profile, \DateTimeInterface $date): Workday
-    {
-        $dayStart = \DateTime::createFromInterface($date);
-        $dayStart->setTimezone($profile->getTimezone());
-        $dayStart->setTime(0, 0, 0);
-        $dayEnd = clone $dayStart;
-        $dayEnd->setTime(23, 59, 59);
-
-        $checkinsOnDay = array_values(array_filter($profile->getCheckins(), fn (\DateTimeInterface $checkin): bool => (
-            $checkin >= $dayStart && $checkin <= $dayEnd
-        )));
-
-        return new Workday($profile, $dayStart, $checkinsOnDay);
-    }
-
     public function addCheckin(Profile $profile, \DateTimeInterface $time): bool
     {
         $time = \DateTime::createFromInterface($time);
@@ -80,6 +66,21 @@ class CheckinService
         $profile->addCheckin($time);
         $profile->save();
         return true;
+    }
+
+    public function checkIn(WorkrangeType $type, \DateTimeInterface $start): void
+    {
+        Assert::true($this->isComplete(), 'Can\'t check in to incomplete workday.');
+        $this->addRange(new Workrange($type, $start, null));
+    }
+
+    public function checkOut(\DateTimeInterface $end): void
+    {
+        $incompleteRange = $this->getIncompleteRange();
+        Assert::notNull($incompleteRange, 'No incomplete range exists for workday.');
+        $this->assertNoOverlap($incompleteRange->getStart(), $end);
+
+        $incompleteRange->setEnd($end);
     }
 
     public function clearWorkday(Workday $workday): void

@@ -33,14 +33,13 @@ $end = ($date && $end < 2400 && $end % 100 < 60 ? $date->setTime((int)($end / 10
 if ($action === 'checkin') {
     $now = new \DateTimeImmutable('now', $profile->getTimezone());
     if ($app->addCheckin($profile, $now)) {
-        $workday = $app->getWorkday($profile, $now);
+        $workday = $profile->getWorkday($now);
         $app->addFlashMessage('success', sprintf('You were checked %s.', ($workday->isComplete() ? 'out' : 'in')));
     } else {
         $app->addFlashMessage('success', 'Failed to check in/out. Did you scan twice by accident?');
     }
 } elseif ($action === 'addRange') {
-    // TODO: Verify no overlap with existing ranges?
-    $workday = $app->getWorkday($profile, $date);
+    $workday = $profile->getWorkday($date);
     if ($workday->isComplete()) {
         if ($start && $end && $start < $end) {
             $app->addCheckin($profile, $start);
@@ -60,11 +59,11 @@ if ($action === 'checkin') {
 } elseif ($action === 'addHoliday') {
     $app->addFlashMessage('danger', 'Logging holidays is not implemented yet. Add a full day instead.');
 } elseif ($action === 'clearCheckins') {
-    $workday = $app->getWorkday($profile, $date);
+    $workday = $profile->getWorkday($date);
     $app->clearWorkday($workday);
     $app->addFlashMessage('success', sprintf('Cleared checkins for %s.', $date->format('j-n-Y')));
 } elseif ($action === 'removeBreak') {
-    $workday = $app->getWorkday($profile, $date);
+    $workday = $profile->getWorkday($date);
     if ($app->removeBreak($workday)) {
         $app->addFlashMessage('success', sprintf('Removed break for %s.', $date->format('j-n-Y')));
     } else {

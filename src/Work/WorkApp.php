@@ -21,14 +21,6 @@ class WorkApp extends App
         return $this->checkinService->addCheckin($profile, $time);
     }
 
-    /**
-     * @return Workday
-     */
-    public function getWorkday(Profile $profile, \DateTimeInterface $date): Workday
-    {
-        return $this->checkinService->getWorkday($profile, $date);
-    }
-
     public function clearWorkday(Workday $workday): void
     {
         $this->checkinService->clearWorkday($workday);

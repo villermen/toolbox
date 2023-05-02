@@ -2,38 +2,19 @@
 
 namespace Villermen\Toolbox\Work;
 
-use Villermen\Toolbox\Profile;
+use Webmozart\Assert\Assert;
 
 class Workday
 {
     private \DateTimeImmutable $date;
 
-    /** @var array{start: \DateTimeInterface, end: \DateTimeInterface|null}[] */
-    private array $ranges;
+    /** @var Workrange[] */
+    private array $ranges = [];
 
-    /**
-     * @param \DateTimeInterface[] $checkins
-     */
     public function __construct(
-        private Profile $profile,
         \DateTimeInterface $date,
-        private array $checkins,
     ) {
-        $this->checkins = array_values($checkins);
         $this->date = \DateTimeImmutable::createFromInterface($date);
-
-        $this->ranges = [];
-        for ($i = 0; $i < count($this->checkins); $i += 2) {
-            $this->ranges[] = [
-                'start' => $this->checkins[$i],
-                'end' => ($this->checkins[$i + 1] ?? null),
-            ];
-        }
-    }
-
-    public function getProfile(): Profile
-    {
-        return $this->profile;
     }
 
     public function getDate(): \DateTimeInterface
@@ -46,26 +27,38 @@ class Workday
      */
     public function getCheckins(): array
     {
-        return $this->checkins;
+        throw new \Exception('Removing.');
     }
 
     /**
-     * @return array{start: \DateTimeInterface, end: \DateTimeInterface|null}[]
+     * @return Workrange[]
      */
     public function getRanges(): array
     {
         return $this->ranges;
     }
 
+    public function addRange(Workrange $range): void
+    {
+        Assert::true($this->isComplete(), 'Can\'t add range for incomplete day.');
+        Assert::eq(
+            $range->getStart()->format('Ymd'),
+            $this->getDate()->format('Ymd'),
+            'Range must be for same day as workday.'
+        );
+        $this->assertNoOverlap($range->getStart(), $range->getEnd());
+
+        $this->ranges[] = $range;
+        usort($this->ranges, fn (Workrange $range1, Workrange $range2): int => (
+            $range1->getStart() <=> $range2->getStart()
+        ));
+    }
+
     public function getTotalDuration(): int
     {
         $duration = 0;
-        foreach ($this->ranges as ['start' => $start, 'end' => $end]) {
-            if (!$end) {
-                continue;
-            }
-
-            $duration += $end->getTimestamp() - $start->getTimestamp();
+        foreach ($this->getRanges() as $range) {
+            $duration += $range->getDuration();
         }
 
         return $duration;
@@ -73,12 +66,29 @@ class Workday
 
     public function isComplete(): bool
     {
-        return (count($this->getCheckins()) % 2 === 0);
+        return !$this->getIncompleteRange();
     }
 
-    public function getLastCheckin(): ?\DateTimeInterface
+    public function getIncompleteRange(): ?Workrange
     {
-        $checkins = $this->getCheckins();
-        return (end($checkins) ?: null);
+        foreach ($this->getRanges() as $range) {
+            if (!$range->getEnd()) {
+                return $range;
+            }
+        }
+
+        return null;
+    }
+
+    private function assertNoOverlap(\DateTimeInterface $start, ?\DateTimeInterface $end = null): void
+    {
+        $end = ($end ?? $start);
+
+        foreach ($this->getRanges() as $range) {
+            Assert::true(
+                $end < $range->getStart() || $start > $range->getEnd(),
+                'Range overlaps with existing range.'
+            );
+        }
     }
 }

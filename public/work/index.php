@@ -24,7 +24,7 @@ $subtitle = $subtitles[mt_rand(0, count($subtitles) - 1)];
 mt_srand();
 
 // TODO: In progress on current day, simulate to give an impression? Will be hard with auto breaking.
-$createBarRanges = function (Workday $workday): array {
+$createBarRanges = function (Workday $workday) use ($profile): array {
     $visibleDayStart = \DateTime::createFromInterface($workday->getDate());
     $visibleDayStart->setTime(7, 0);
     $visibleDayEnd = \DateTime::createFromInterface($workday->getDate());
@@ -33,17 +33,17 @@ $createBarRanges = function (Workday $workday): array {
 
     $x = 0;
     $barRanges = [];
-    foreach ($workday->getRanges() as ['start' => $start, 'end' => $end]) {
+    foreach ($workday->getRanges() as $range) {
         // Skip invisible ranges.
-        if ($end && $end < $visibleDayStart || $start > $visibleDayEnd) {
+        if ($range->getEnd() && $range->getEnd() < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
             continue;
         }
 
-        $visibleStart = max($start, $visibleDayStart);
-        if ($end) {
-            $visibleEnd = $end;
+        $visibleStart = max($range->getStart(), $visibleDayStart);
+        if ($range->getEnd()) {
+            $visibleEnd = $range->getEnd();
         } else {
-            $now = new \DateTimeImmutable('now', $workday->getProfile()->getTimezone());
+            $now = new \DateTimeImmutable('now', $profile->getTimezone());
             
             if ($workday->getDate()->format('Ymd') === $now->format('Ymd')) {
                 $visibleEnd = $now;
@@ -55,15 +55,22 @@ $createBarRanges = function (Workday $workday): array {
         $visibleEnd = min($visibleEnd, $visibleDayEnd);
 
         $marginLeft = ($visibleStart->getTimestamp() - $visibleDayStart->getTimestamp()) / $visibleDaySeconds * 100.0 - $x;
-        $width = ($visibleEnd->getTimestamp() - $start->getTimestamp()) / $visibleDaySeconds * 100.0;
+        $width = ($visibleEnd->getTimestamp() - $range->getStart()->getTimestamp()) / $visibleDaySeconds * 100.0;
 
         $barRanges[] = [
-            'startFormatted' => ($visibleStart === $start ? $start->format('H:i') : '~'),
-            'endFormatted' => ($end && $visibleEnd === $end ? $end->format('H:i') : '~'),
-            'rangeFormatted' => sprintf('%s - %s', $start->format('H:i'), ($end ? $end->format('H:i') : '???')),
+            'startFormatted' => ($visibleStart === $range->getStart() ? $range->getStart()->format('H:i') : '~'),
+            'endFormatted' => ($range->getEnd() && $visibleEnd === $range->getEnd()
+                ? $range->getEnd()->format('H:i')
+                : '~'
+            ),
+            'rangeFormatted' => sprintf(
+                '%s - %s',
+                $range->getStart()->format('H:i'),
+                ($range->getEnd() ? $range->getEnd()->format('H:i') : '???')
+            ),
             'marginLeft' => sprintf('%s%%', $marginLeft),
             'width' => sprintf('%s%%', $width),
-            'colorClass' => ($end ? 'bg-primary' : 'bg-warning'),
+            'colorClass' => ($range->getEnd() ? 'bg-primary' : 'bg-warning'),
         ];
 
         $x += $marginLeft + $width;
@@ -78,12 +85,12 @@ $getInvisibleRanges = function (Workday $workday): array {
     $visibleDayEnd->setTime(20, 0);
 
     $invisibleRanges = [];
-    foreach ($workday->getRanges() as ['start' => $start, 'end' => $end]) {
+    foreach ($workday->getRanges() as $range) {
         // Only include invisible ranges.
-        if ($end && $end < $visibleDayStart || $start > $visibleDayEnd) {
+        if ($range->getEnd() && $range->getEnd() < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
             $invisibleRanges[] = [
-                'startFormatted' => $start->format('H:i'),
-                'endFormatted' => ($end ? $end->format('H:i') : '???'),
+                'startFormatted' => $range->getStart()->format('H:i'),
+                'endFormatted' => ($range->getEnd() ? $range->getEnd()->format('H:i') : '???'),
             ];
         }
     }
@@ -93,6 +100,7 @@ $getInvisibleRanges = function (Workday $workday): array {
 
 if ($profile) {
     $currentWorkday = null;
+    /** @var array{workdays: Workday[], workSeconds: int, paidSeconds: int}[] $months */
     $months = [];
     $day = new \DateTime('today', $profile->getTimezone());
     while (true) {
@@ -109,7 +117,7 @@ if ($profile) {
             ];
         }
 
-        $workday = $app->getWorkday($profile, $day);
+        $workday = $profile->getWorkday($day) ?? new Workday($day);
         $months[$month]['workdays'][] = $workday;
         $months[$month]['workSeconds'] += $workday->getTotalDuration();
         $months[$month]['paidSeconds'] += ($profile->getSchedule()[(int)$day->format('N') - 1] * 3600);
@@ -123,7 +131,7 @@ if ($profile) {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -217,7 +225,7 @@ if ($profile) {
                                             <?php if ($workday->isComplete()): ?>
                                                 <input type="time" name="start" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>
                                             <?php else: ?>
-                                                <div><?= $workday->getLastCheckin()->format('H:i'); ?></div>
+                                                <div><?= $workday->getIncompleteRange()->getStart()->format('H:i'); ?></div>
                                             <?php endif; ?>
                                             <div>-</div>
                                             <input type="time" name="end" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>

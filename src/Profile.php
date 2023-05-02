@@ -2,6 +2,9 @@
 
 namespace Villermen\Toolbox;
 
+use Villermen\Toolbox\Work\Workday;
+use Villermen\Toolbox\Work\Workrange;
+use Villermen\Toolbox\Work\WorkrangeType;
 use Webmozart\Assert\Assert;
 
 class Profile
@@ -11,12 +14,54 @@ class Profile
         $data = @file_get_contents(self::getPath($profileId));
         $data = ($data ? json_decode($data, true) : null);
 
-        return new self(
+        $profile = new self(
             $profileId,
             $data['auth'] ?? null,
             $data['settings'] ?? null,
-            $data['checkins'] ?? null
         );
+
+        // Migrate checkins.
+        $checkins = ($data['checkins'] ?? []);
+        if ($checkins) {
+            foreach ($checkins as $checkin) {
+                $checkinTime = new \DateTime(sprintf('@%s', $checkin));
+                $checkinTime->setTimezone($profile->getTimezone());
+
+                $workday = $profile->getWorkday($checkinTime);
+                if (!$workday) {
+                    $workday = new Workday($checkinTime);
+                    $profile->addWorkday($workday);
+                }
+
+                $range = $workday->getIncompleteRange();
+                if ($range) {
+                    $range->setEnd($checkinTime);
+                } else {
+                    $range = new Workrange(WorkrangeType::WORK, $checkinTime, null);
+                    $workday->addRange($range);
+                }
+            }
+        }
+
+        foreach ($data['workdays'] ?? [] as $date => $rangesData) {
+            $ranges = [];
+            foreach ($rangesData as $rangeData) {
+                $type = WorkrangeType::from($rangeData[0]);
+                $start = new \DateTime(sprintf('@%s', $rangeData[1]));
+                $start->setTimezone($profile->getTimezone());
+                $end = null;
+                if ($rangeData[2]) {
+                    $end = new \DateTime(sprintf('@%s', $rangeData[2]));
+                    $end->setTimezone($profile->getTimezone());
+                }
+
+                $ranges[] = new Workrange($type, $start, $end);
+            }
+
+            $profile->addWorkday(new Workday(\DateTimeImmutable::createFromFormat('Ymd', $date, $profile->getTimezone())));
+        }
+
+        return $profile;
     }
 
     private static function getPath(string $profileId): string
@@ -24,12 +69,13 @@ class Profile
         return sprintf('data/profile-%s.json', $profileId);
     }
 
+    /** @var array<string, Workday> */
+    private array $workdays = [];
+
     private function __construct(
         private string $profileId,
         private ?array $auth,
         private ?array $settings,
-        /** @var int[] */
-        private ?array $checkins
     ) {
     }
 
@@ -65,31 +111,26 @@ class Profile
     //     }
     // }
 
+    public function getWorkday(\DateTimeInterface $date): ?Workday
+    {
+        return ($this->getWorkdays()[$date->format('Ymd')] ?? null);
+    }
+
     /**
-     * @return \DateTimeImmutable[]
+     * @return array<string, Workday>
      */
-    public function getCheckins(): array
+    public function getWorkdays(): array
     {
-        if (!$this->checkins) {
-            return [];
-        }
-
-        return array_map(fn (int $checkin): \DateTimeImmutable => (
-            (new \DateTimeImmutable(sprintf('@%s', $checkin)))->setTimezone($this->getTimezone())
-        ), $this->checkins);
+        return $this->workdays;
     }
 
-    public function addCheckin(\DateTimeInterface $time): void
+    public function addWorkday(Workday $workday): void
     {
-        $this->checkins[] = $time->getTimestamp();
-        sort($this->checkins);
-    }
+        $key = $workday->getDate()->format('Ymd');
+        Assert::keyNotExists($this->workdays, $key);
 
-    public function removeCheckin(\DateTimeInterface $time): void
-    {
-        $this->checkins = array_values(array_filter($this->checkins, fn (int $checkin): bool => (
-            $checkin !== $time->getTimestamp()
-        )));
+        $this->workdays[$key] = $workday;
+        ksort($this->workdays, SORT_NUMERIC);
     }
 
     public function getName(): ?string
@@ -117,10 +158,23 @@ class Profile
 
     public function save(): void
     {
+        $workdays = [];
+        foreach ($this->getWorkdays() as $date => $workday) {
+            if (!$workday->getRanges()) {
+                continue;
+            }
+
+            $workdays[$date] = array_map(fn (Workrange $workrange): array => [
+                $workrange->getType()->value,
+                $workrange->getStart()->getTimestamp(),
+                $workrange->getEnd()?->getTimestamp(),
+            ], $workday->getRanges());
+        }
+
         $data = [
             'auth' => $this->auth,
             'settings' => $this->settings,
-            'checkins' => $this->checkins,
+            'workdays' => (object)$workdays,
         ];
 
         if (!file_put_contents(self::getPath($this->profileId), json_encode($data))) {
