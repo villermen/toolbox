@@ -35,7 +35,7 @@ $createBarRanges = function (Workday $workday) use ($profile): array {
     $barRanges = [];
     foreach ($workday->getRanges() as $range) {
         // Skip invisible ranges.
-        if ($range->getEnd() && $range->getEnd() < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
+        if (($range->getEnd() ?? $range->getStart()) < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
             continue;
         }
 
@@ -102,7 +102,7 @@ $getInvisibleRanges = function (Workday $workday): array {
     $invisibleRanges = [];
     foreach ($workday->getRanges() as $range) {
         // Only include invisible ranges.
-        if ($range->getEnd() && $range->getEnd() < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
+        if (($range->getEnd() ?? $range->getStart()) < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
             $invisibleRanges[] = [
                 'startFormatted' => $range->getStart()->format('H:i'),
                 'endFormatted' => ($range->getEnd() ? $range->getEnd()->format('H:i') : '???'),
