@@ -16,18 +16,31 @@ class WorkApp extends App
         $this->checkinService = new CheckinService();
     }
 
-    public function addCheckin(Profile $profile, \DateTimeInterface $time): bool
+    public function addCheckin(Profile $profile, \DateTimeInterface $time): Workday
     {
-        return $this->checkinService->addCheckin($profile, $time);
+        $workday = $this->checkinService->addCheckin($profile, $time);
+        $this->saveProfile($profile);
+        return $workday;
     }
 
-    public function clearWorkday(Workday $workday): void
+    public function addFullDay(Profile $profile, \DateTimeInterface $date, WorkrangeType $type): Workday
     {
-        $this->checkinService->clearWorkday($workday);
+        $workday = $this->checkinService->addFullDay($profile, $date, $type);
+        $this->saveProfile($profile);
+        return $workday;
     }
 
-    public function removeBreak(Workday $workday): bool
+    public function clearWorkday(Profile $profile, \DateTimeInterface $date): Workday
     {
-        return $this->checkinService->removeBreak($workday);
+        $workday = $this->checkinService->clearWorkday($profile, $date);
+        $this->saveProfile($profile);
+        return $workday;
+    }
+
+    public function removeBreak(Profile $profile, \DateTimeInterface $date): Workday
+    {
+        $workday = $this->checkinService->removeBreak($profile, $date);
+        $this->saveProfile($profile);
+        return $workday;
     }
 }

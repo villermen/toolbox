@@ -57,12 +57,27 @@ $createBarRanges = function (Workday $workday) use ($profile): array {
         $marginLeft = ($visibleStart->getTimestamp() - $visibleDayStart->getTimestamp()) / $visibleDaySeconds * 100.0 - $x;
         $width = ($visibleEnd->getTimestamp() - $range->getStart()->getTimestamp()) / $visibleDaySeconds * 100.0;
 
-        $barRanges[] = [
-            'startFormatted' => ($visibleStart === $range->getStart() ? $range->getStart()->format('H:i') : '~'),
-            'endFormatted' => ($range->getEnd() && $visibleEnd === $range->getEnd()
+        if ($range->getType() === \Villermen\Toolbox\Work\WorkrangeType::WORK) {
+            $startFormatted = ($visibleStart === $range->getStart() ? $range->getStart()->format('H:i') : '~');
+            $endFormatted = ($range->getEnd() && $visibleEnd === $range->getEnd()
                 ? $range->getEnd()->format('H:i')
                 : '~'
-            ),
+            );
+            $colorClass = ($range->getEnd() ? 'bg-primary' : 'bg-warning');
+        } else {
+            $startFormatted = match ($range->getType()) {
+                \Villermen\Toolbox\Work\WorkrangeType::HOLIDAY => 'Holiday',
+                \Villermen\Toolbox\Work\WorkrangeType::SICK_LEAVE => 'Sick leave',
+                \Villermen\Toolbox\Work\WorkrangeType::SPECIAL_LEAVE => 'Special leave',
+                default => 'Unknown range type',
+            };
+            $endFormatted = '';
+            $colorClass = 'bg-info';
+        }
+
+        $barRanges[] = [
+            'startFormatted' => $startFormatted,
+            'endFormatted' => $endFormatted,
             'rangeFormatted' => sprintf(
                 '%s - %s',
                 $range->getStart()->format('H:i'),
@@ -70,7 +85,7 @@ $createBarRanges = function (Workday $workday) use ($profile): array {
             ),
             'marginLeft' => sprintf('%s%%', $marginLeft),
             'width' => sprintf('%s%%', $width),
-            'colorClass' => ($range->getEnd() ? 'bg-primary' : 'bg-warning'),
+            'colorClass' => $colorClass,
         ];
 
         $x += $marginLeft + $width;
@@ -117,7 +132,7 @@ if ($profile) {
             ];
         }
 
-        $workday = $profile->getWorkday($day) ?? new Workday($day);
+        $workday = $profile->getOrCreateWorkday($day);
         $months[$month]['workdays'][] = $workday;
         $months[$month]['workSeconds'] += $workday->getTotalDuration();
         $months[$month]['paidSeconds'] += ($profile->getSchedule()[(int)$day->format('N') - 1] * 3600);
@@ -269,10 +284,55 @@ if ($profile) {
                                                     class="dropdown-item"
                                                     href="<?= $app->createUrl('work/form.php', [
                                                         'date' => $dateValue,
-                                                        'action' => 'addHoliday',
+                                                        'action' => 'addFullDay',
+                                                        'type' => \Villermen\Toolbox\Work\WorkrangeType::HOLIDAY->value,
                                                     ]); ?>"
                                                 <?php endif; ?>
                                             >Holiday</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div
+                                            <?php if ($workday->getRanges()): ?>
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="left"
+                                                title="Only available when there aren't any checkins yet. Clear them first."
+                                            <?php endif; ?>
+                                        >
+                                            <a
+                                                <?php if ($workday->getRanges()): ?>
+                                                    class="dropdown-item disabled"
+                                                <?php else: ?>
+                                                    class="dropdown-item"
+                                                    href="<?= $app->createUrl('work/form.php', [
+                                                        'date' => $dateValue,
+                                                        'action' => 'addFullDay',
+                                                        'type' => \Villermen\Toolbox\Work\WorkrangeType::SICK_LEAVE->value,
+                                                    ]); ?>"
+                                                <?php endif; ?>
+                                            >Sick leave</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div
+                                            <?php if ($workday->getRanges()): ?>
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="left"
+                                                title="Only available when there aren't any checkins yet. Clear them first."
+                                            <?php endif; ?>
+                                        >
+                                            <a
+                                                <?php if ($workday->getRanges()): ?>
+                                                    class="dropdown-item disabled"
+                                                <?php else: ?>
+                                                    class="dropdown-item"
+                                                    href="<?= $app->createUrl('work/form.php', [
+                                                        'date' => $dateValue,
+                                                        'action' => 'addFullDay',
+                                                        'type' => \Villermen\Toolbox\Work\WorkrangeType::SPECIAL_LEAVE->value,
+                                                    ]); ?>"
+                                                <?php endif; ?>
+                                            >Special leave</a>
                                         </div>
                                     </li>
                                     <li>

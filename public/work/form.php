@@ -1,10 +1,8 @@
 <?php
 
-use Villermen\Toolbox\Work\WorkApp;
-
 require_once('../../vendor/autoload.php');
 
-$app = new WorkApp();
+$app = new \Villermen\Toolbox\Work\WorkApp();
 
 $profile = $app->getAuthenticatedProfile();
 if (!$profile) {
@@ -14,61 +12,44 @@ if (!$profile) {
 }
 
 $action = ($_GET['action'] ?? null);
-$date = ($_GET['date'] ?? null);
-$date = ($date ? \DateTimeImmutable::createFromFormat('Ymd', $date, $profile->getTimezone()) : null);
-$start = ($_GET['start'] ?? null);
-$start = ($start ? (int)str_replace(':', '', $start) : null);
-$end = ($_GET['end'] ?? null);
-$end = ($end ? (int)str_replace(':', '', $end) : null);
+$date = ($_GET['date'] ?? '');
+$start = ($_GET['start'] ?? '');
+$start = (\DateTimeImmutable::createFromFormat('Ymd H:i', sprintf('%s %s', $date, $start), $profile->getTimezone()) ?: null);
+$end = ($_GET['end'] ?? '');
+$end = (\DateTimeImmutable::createFromFormat('Ymd H:i', sprintf('%s %s', $date, $end), $profile->getTimezone()) ?: null);
+$date = \DateTimeImmutable::createFromFormat('Ymd', $date, $profile->getTimezone());
+$rangeType = \Villermen\Toolbox\Work\WorkrangeType::tryFrom((int)$_GET['type']) ?? \Villermen\Toolbox\Work\WorkrangeType::WORK;
 
-if ($action === 'addFullDay') {
-    $action = 'addRange';
-    $start = 830;
-    $end = 1700;
-}
+if ($action === 'checkin' || ($action === 'addRange' && !$start && $end)) {
+    $now = ($end ?? new \DateTimeImmutable('now', $profile->getTimezone()));
 
-$start = ($date && $start < 2400 && $start % 100 < 60 ? $date->setTime((int)($start / 100), $start % 100) : null);
-$end = ($date && $end < 2400 && $end % 100 < 60 ? $date->setTime((int)($end / 100), $end % 100) : null);
-
-if ($action === 'checkin') {
-    $now = new \DateTimeImmutable('now', $profile->getTimezone());
-    if ($app->addCheckin($profile, $now)) {
-        $workday = $profile->getWorkday($now);
+    try {
+        $workday = $app->addCheckin($profile, $now);
         $app->addFlashMessage('success', sprintf('You were checked %s.', ($workday->isComplete() ? 'out' : 'in')));
-    } else {
-        $app->addFlashMessage('success', 'Failed to check in/out. Did you scan twice by accident?');
+    } catch (\InvalidArgumentException $exception) {
+        $app->addFlashMessage('danger', $exception->getMessage());
     }
 } elseif ($action === 'addRange') {
-    $workday = $profile->getWorkday($date);
-    if ($workday->isComplete()) {
-        if ($start && $end && $start < $end) {
-            $app->addCheckin($profile, $start);
-            $app->addCheckin($profile, $end);
-            $app->addFlashMessage('success', sprintf('Added range for %s.', $date->format('j-n-Y')));
-        } else {
-            $app->addFlashMessage('danger', 'Please specify a valid time range.');
-        }
-    } else {
-        if ($end && $end > $workday->getLastCheckin()) {
-            $app->addCheckin($profile, $end);
-            $app->addFlashMessage('success', sprintf('Added end time for %s.', $date->format('j-n-Y')));
-        } else {
-            $app->addFlashMessage('danger', 'Please specify a valid end time.');
-        }
+    try {
+        $workday = $app->addCheckin($profile, $start);
+        $workday = $app->addCheckin($profile, $end);
+        $app->addFlashMessage('success', sprintf('Added range for %s.', $workday->getDate()->format('j-n-Y')));
+    } catch (\InvalidArgumentException $exception) {
+        $app->addFlashMessage('danger', $exception->getMessage());
     }
-} elseif ($action === 'addHoliday') {
-    $app->addFlashMessage('danger', 'Logging holidays is not implemented yet. Add a full day instead.');
+} elseif ($action === 'addFullDay') {
+    try {
+        $workday = $app->addFullDay($profile, $date, $rangeType);
+        $app->addFlashMessage('success', sprintf('Added range for %s.', $workday->getDate()->format('j-n-Y')));
+    } catch (\InvalidArgumentException $exception) {
+        $app->addFlashMessage('danger', $exception->getMessage());
+    }
 } elseif ($action === 'clearCheckins') {
-    $workday = $profile->getWorkday($date);
-    $app->clearWorkday($workday);
-    $app->addFlashMessage('success', sprintf('Cleared checkins for %s.', $date->format('j-n-Y')));
+    $workday = $app->clearWorkday($profile, $date);
+    $app->addFlashMessage('success', sprintf('Cleared checkins for %s.', $workday->getDate()->format('j-n-Y')));
 } elseif ($action === 'removeBreak') {
-    $workday = $profile->getWorkday($date);
-    if ($app->removeBreak($workday)) {
-        $app->addFlashMessage('success', sprintf('Removed break for %s.', $date->format('j-n-Y')));
-    } else {
-        $app->addFlashMessage('danger', sprintf('Failed to remove break for %s.', $date->format('j-n-Y')));
-    }
+    $workday = $app->removeBreak($profile, $date);
+    $app->addFlashMessage('success', sprintf('Removed break for %s.', $workday->getDate()->format('j-n-Y')));
 } else {
     $app->addFlashMessage('danger', 'Invalid action specified.');
 }

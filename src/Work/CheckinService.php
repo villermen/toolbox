@@ -7,102 +7,115 @@ use Webmozart\Assert\Assert;
 
 class CheckinService
 {
-    public function addCheckin(Profile $profile, \DateTimeInterface $time): bool
+    private const DOUBLE_SCAN_THRESHOLD = 60;
+
+    /**
+     * Amount of seconds before a missing checkout on the previous day is no longer considered a late-night work shift
+     * but a mistake.
+     */
+    private const MISSED_CHECKOUT_THRESHOLD = 6 * 3600;
+
+    public function addCheckin(Profile $profile, \DateTimeInterface $time): Workday
     {
         $time = \DateTime::createFromInterface($time);
         $time->setTimezone($profile->getTimezone());
 
-        $checkins = $profile->getCheckins();
+        $workday = $profile->getOrCreateWorkday($time);
+        $previousWorkday = $profile->getOrCreateWorkday(\DateTime::createFromInterface($time)->modify('-1 day'));
 
-        $previousCheckin = null;
-        $nextCheckinOnDay = null;
-        foreach (array_reverse($checkins) as $checkin) {
-            if ($checkin <= $time) {
-                $previousCheckin = $checkin;
-                break;
-            } elseif ($checkin->format('Ymd') === $time->format('Ymd')) {
-                $nextCheckinOnDay = $checkin;
-            }
+        // Add end-of-day and start-of-day checkin when checkin spans midnight. Leaves missed checkouts (when
+        // time difference is too great).
+        $previousIncompleteStart = $previousWorkday->getIncompleteRange()?->getStart();
+        if (
+            $workday->isComplete() &&
+            $previousIncompleteStart &&
+            $time->getTimestamp() - $previousIncompleteStart->getTimestamp() <= self::MISSED_CHECKOUT_THRESHOLD
+        ) {
+            $dayEnd = \DateTime::createFromInterface($previousIncompleteStart);
+            $dayEnd->setTime(23, 59, 59);
+            $dayStart = \DateTime::createFromInterface($time);
+            $dayStart->setTime(0, 0);
+
+            $previousWorkday->finishRange($dayEnd);
+            $workday->addRange(new Workrange(WorkrangeType::WORK, $dayStart, null));
         }
-        if ($nextCheckinOnDay) {
-            $nextCheckinOnDay = \DateTime::createFromInterface($nextCheckinOnDay);
-            $nextCheckinOnDay->setTimezone($profile->getTimezone());
-        }
 
-        if ($previousCheckin && !$nextCheckinOnDay) {
-            $diff = ($time->getTimestamp() - $previousCheckin->getTimestamp());
-            $previousDay = (int)$previousCheckin->format('Ymd');
-            $currentDay = (int)$time->format('Ymd');
-            
-            // Prevent checkins less than a minute apart (double scans).
-            if ($diff < 60) {
-                return false;
+        $incompleteRange = $workday->getIncompleteRange();
+        if (!$incompleteRange) {
+            $ranges = $workday->getRanges();
+            $lastRange = (end($ranges) ?: null);
+            if ($lastRange) {
+                Assert::greaterThanEq(
+                    $time->getTimestamp() - $lastRange->getEnd()->getTimestamp(),
+                    self::DOUBLE_SCAN_THRESHOLD,
+                    sprintf('Prevented double checkin within %s seconds.', self::DOUBLE_SCAN_THRESHOLD)
+                );
             }
 
-            // Add end-of-day and start-of-day checkin when checkin spans midnight. Leaves forgotten checkins (when
-            // time difference is too great).
-            if ($previousDay === $currentDay - 1 && $diff <= 6 * 3600) {
-                $dayEnd = \DateTime::createFromInterface($previousCheckin);
-                $dayEnd->setTime(23, 59, 59);
-                $dayStart = \DateTime::createFromInterface($time);
-                $dayStart->setTime(0, 0, 0);
-
-                $profile->addCheckin($dayEnd);
-                $profile->addCheckin($dayStart);
-            }
+            // Check in
+            $workday->addRange(new Workrange(WorkrangeType::WORK, $time, null));
+        } else {
+            // Check out
+            Assert::greaterThanEq(
+                $time->getTimestamp() - $incompleteRange->getStart()->getTimestamp(),
+                self::DOUBLE_SCAN_THRESHOLD,
+                sprintf('Prevented double checkout within %s seconds.', self::DOUBLE_SCAN_THRESHOLD)
+            );
 
             // Auto break.
-            // TODO: Will add break when there's a completed range.
-            if ($profile->getAutoBreak() && $previousDay === $currentDay) {
-                [$breakStart, $breakEnd] = $profile->getAutoBreak($time);
-
-                if ($previousCheckin < $breakStart && $time > $breakEnd) {
-                    $profile->addCheckin($breakStart);
-                    $profile->addCheckin($breakEnd);
-                }
+            [$breakStart, $breakEnd] = $profile->getAutoBreak($time);
+            if ($breakStart && $incompleteRange->getStart() < $breakStart && $time > $breakEnd ) {
+                $workday->finishRange($breakStart);
+                $workday->addRange(new Workrange(WorkrangeType::WORK, $breakEnd, null));
             }
+
+            $workday->finishRange($time);
         }
 
-        $profile->addCheckin($time);
-        $profile->save();
-        return true;
+        return $workday;
     }
 
-    public function checkIn(WorkrangeType $type, \DateTimeInterface $start): void
+    public function addRange(Profile $profile, \DateTimeInterface $start, \DateTimeInterface $end): Workday
     {
-        Assert::true($this->isComplete(), 'Can\'t check in to incomplete workday.');
-        $this->addRange(new Workrange($type, $start, null));
+        // TODO: Weird how this doesn't call $workday->addRange(), but otherwise auto break wouldn't trigger.
+        $workday = $profile->getOrCreateWorkday($start);
+        Assert::true($workday->isComplete());
+        $this->addCheckin($profile, $start);
+        $this->addCheckin($profile, $end);
+        return $workday;
     }
 
-    public function checkOut(\DateTimeInterface $end): void
+    public function addFullDay(Profile $profile, \DateTimeInterface $date, WorkrangeType $type): Workday
     {
-        $incompleteRange = $this->getIncompleteRange();
-        Assert::notNull($incompleteRange, 'No incomplete range exists for workday.');
-        $this->assertNoOverlap($incompleteRange->getStart(), $end);
+        $scheduleHours = $profile->getSchedule()[(int)$date->format('N') - 1];
+        Assert::greaterThan($scheduleHours, 0, 'Can\'t add full day when schedule says you\'re not working that day.');
 
-        $incompleteRange->setEnd($end);
+        $start = \DateTimeImmutable::createFromInterface($date)->setTime(9, 0);
+        $end = $start->modify(sprintf('+ %s hours', $scheduleHours));
+        $workday = $profile->getOrCreateWorkday($date);
+        $workday->addRange(new Workrange($type, $start, $end));
+        return $workday;
     }
 
-    public function clearWorkday(Workday $workday): void
+    public function clearWorkday(Profile $profile, \DateTimeInterface $date): Workday
     {
-        $profile = $workday->getProfile();
-        foreach ($workday->getCheckins() as $checkin) {
-            $profile->removeCheckin($checkin);
-        }
-        $profile->save();
+        $workday = $profile->getOrCreateWorkday($date);
+        $workday->clear();
+        return $workday;
     }
 
-    public function removeBreak(Workday $workday): bool
+    public function removeBreak(Profile $profile, \DateTimeInterface $date): Workday
     {
-        $profile = $workday->getProfile();
+        $workday = $profile->getOrCreateWorkday($date);
         $ranges = $workday->getRanges();
-        if (count($ranges) < 2 || !$ranges[0]['end']) {
-            return false;
+        Assert::minCount($ranges, 2, 'No break detected on date.');
+
+        $workday->clear();
+        $workday->addRange(new Workrange($ranges[0]->getType(), $ranges[0]->getStart(), $ranges[1]->getEnd()));
+        foreach (array_slice($ranges, 2) as $range) {
+            $workday->addRange($range);
         }
 
-        $profile->removeCheckin($ranges[0]['end']);
-        $profile->removeCheckin($ranges[1]['start']);
-        $profile->save();
-        return true;
+        return $workday;
     }
 }

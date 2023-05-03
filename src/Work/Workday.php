@@ -17,17 +17,9 @@ class Workday
         $this->date = \DateTimeImmutable::createFromInterface($date);
     }
 
-    public function getDate(): \DateTimeInterface
+    public function getDate(): \DateTimeImmutable
     {
         return $this->date;
-    }
-
-    /**
-     * @return \DateTimeInterface[]
-     */
-    public function getCheckins(): array
-    {
-        throw new \Exception('Removing.');
     }
 
     /**
@@ -52,6 +44,14 @@ class Workday
         usort($this->ranges, fn (Workrange $range1, Workrange $range2): int => (
             $range1->getStart() <=> $range2->getStart()
         ));
+    }
+
+    public function finishRange(\DateTimeInterface $end): void
+    {
+        $incompleteRange = $this->getIncompleteRange();
+        Assert::notNull($incompleteRange, 'Can\'t finish range of complete day.');
+        $this->assertNoOverlap($incompleteRange->getStart(), $end);
+        $incompleteRange->setEnd($end);
     }
 
     public function getTotalDuration(): int
@@ -80,13 +80,18 @@ class Workday
         return null;
     }
 
-    private function assertNoOverlap(\DateTimeInterface $start, ?\DateTimeInterface $end = null): void
+    public function clear(): void
+    {
+        $this->ranges = [];
+    }
+
+    private function assertNoOverlap(\DateTimeInterface $start, ?\DateTimeInterface $end): void
     {
         $end = ($end ?? $start);
 
         foreach ($this->getRanges() as $range) {
             Assert::true(
-                $end < $range->getStart() || $start > $range->getEnd(),
+                $end < $range->getStart() || !$range->getEnd() || $start > $range->getEnd(),
                 'Range overlaps with existing range.'
             );
         }

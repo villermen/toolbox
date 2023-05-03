@@ -10,7 +10,10 @@ class App
 
     private Authentication $authentication;
 
+    private ProfileService $profileService;
+
     private ?Profile $authenticatedProfile = null;
+
 
     public function __construct()
     {
@@ -19,16 +22,22 @@ class App
         $this->config = Config::load();
         $this->session = Session::start($this->config);
         $this->authentication = new Authentication($this->config, $this->session);
+        $this->profileService = new ProfileService();
     }
 
     public function getAuthenticatedProfile(): ?Profile
     {
         if (!$this->authenticatedProfile) {
             $profileId = $this->session->get(Authentication::SESSION_KEY_PROFILE);
-            $this->authenticatedProfile = ($profileId ? Profile::load($profileId) : null);
+            $this->authenticatedProfile = ($profileId ? $this->profileService->loadProfile($profileId) : null);
         }
 
         return $this->authenticatedProfile;
+    }
+
+    public function saveProfile(Profile $profile): void
+    {
+        $this->profileService->saveProfile($profile);
     }
 
     public function authenticate(): string
