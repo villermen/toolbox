@@ -18,6 +18,7 @@ $subtitles = [
     'You know what to do.',
     'Go shine.',
     'You look lovely today.',
+    'I wouldn\'t ask anyone else.',
 ];
 mt_srand((int)date('Ymd'));
 $subtitle = $subtitles[mt_rand(0, count($subtitles) - 1)];
