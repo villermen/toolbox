@@ -4,6 +4,7 @@ namespace Villermen\Toolbox;
 
 use League\OAuth2\Client\Grant\AuthorizationCode;
 use League\OAuth2\Client\Provider\Google;
+use League\OAuth2\Client\Provider\GoogleUser;
 use Villermen\Toolbox\Exception\AuthenticationException;
 
 class Authentication
@@ -12,8 +13,11 @@ class Authentication
     private const SESSION_KEY_REDIRECT = 'authredirect';
     private const SESSION_KEY_STATE = 'authstate';
 
-    public function __construct(private Config $config, private Session $session)
-    {
+    public function __construct(
+        private Config $config,
+        private Session $session,
+        private ProfileService $profileService
+    ) {
     }
 
     /**
@@ -66,7 +70,7 @@ class Authentication
             $ownerDetails = $provider->getResourceOwner($token);
 
             $profileId = sha1(sprintf('google:%s', $ownerDetails->getId()));
-            $profile = Profile::load($profileId);
+            $profile = $this->profileService->loadProfile($profileId);
             $profile->setAuth([
                 'type' => 'google',
                 'id' => $ownerDetails->getId(),
@@ -76,7 +80,7 @@ class Authentication
                 // Refresh token currently not needed. Can be fixed by adding 'accessType' => 'offline'.
                 // 'refreshToken' => $token->getRefreshToken(),
             ]);
-            $profile->save();
+            $this->profileService->saveProfile($profile);
 
             $redirectUrl = $this->session->get(self::SESSION_KEY_REDIRECT);
             $this->session->set(self::SESSION_KEY_PROFILE, $profileId);

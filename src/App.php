@@ -21,8 +21,8 @@ class App
 
         $this->config = Config::load();
         $this->session = Session::start($this->config);
-        $this->authentication = new Authentication($this->config, $this->session);
         $this->profileService = new ProfileService();
+        $this->authentication = new Authentication($this->config, $this->session, $this->profileService);
     }
 
     public function getAuthenticatedProfile(): ?Profile
