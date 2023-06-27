@@ -180,15 +180,52 @@ if ($profile) {
                     <div class="lead d-inline-block"><?= $subtitle; ?></div>
                 </div>
                 <hr />
-                <a class="btn btn-primary btn-sm float-end align-text-bottom" href="<?= $app->createUrl('work/form.php', [
-                    'action' => 'checkin',
-                ]); ?>"><?= sprintf('Check %s now', $currentWorkday->isComplete() ? 'in' : 'out'); ?></a>
-                <p>
-                    <?php [$breakStart, $breakEnd] = $profile->getAutoBreak(); ?>
-                    Auto break: <?= $breakStart ? sprintf('%s - %s', $breakStart->format('H:i'), $breakEnd->format('H:i')) : 'disabled'; ?>.<br />
-                    Schedule: <?= implode(',', $profile->getSchedule()); ?>.<br />
-                    Timezone: <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)<br />
-                </p>
+                <?php [$breakStart, $breakEnd] = $profile->getAutoBreak(); ?>
+                <form method="get" action="<?= $app->createUrl('work/form.php'); ?>">
+                    <input type="hidden" name="action" value="settings" />
+                    <div class="row mb-2">
+                        <div class="col-12 col-sm-4 mb-4 mb-sm-0 order-sm-last text-end">
+                            <a class="btn btn-primary btn-sm d-block d-sm-inline-block w-100" href="<?= $app->createUrl('work/form.php', [
+                                'action' => 'checkin',
+                            ]); ?>"><?= sprintf('Check %s now', $currentWorkday->isComplete() ? 'in' : 'out'); ?></a>
+                        </div>
+                        <label for="autoBreakEnabled" class="col-4 col-sm-3 form-label">Auto break</label>
+                        <div class="col-8 col-sm-5">
+                            <div class="form-check form-switch">
+                                <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="autoBreakEnabled"
+                                        name="autoBreakEnabled"
+                                    <?php if ($breakStart): ?>
+                                        checked
+                                    <?php endif; ?>
+                                />
+                            </div>
+                            <div id="autoBreakRangeInputs" class="d-flex align-items-center gap-1 <?= ($breakStart ? '' : 'd-none'); ?>">
+                                <input type="time" id="autoBreakStart" name="autoBreakStart" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" value="<?= $breakStart->format('H:i'); ?>" />
+                                <div>-</div>
+                                <input type="time" id="autoBreakEnd" name="autoBreakEnd" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" value="<?= $breakEnd->format('H:i'); ?>" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <label for="schedule" class="col-4 col-sm-3 form-label">Schedule</label>
+                        <div class="col-8 col-sm-5">
+                            <input type="text" id="schedule" name="schedule" class="form-control form-control-sm" value="<?= implode(',', $profile->getSchedule()); ?>" />
+                        </div>
+                    </div>
+                    <div class="row mb-4 gy-2">
+                        <label class="col-4 col-sm-3 form-label">Timezone</label>
+                        <div class="col-8 col-sm-5">
+                            <?= $profile->getTimezone()->getName(); ?> (+<?= $profile->getTimezone()->getOffset(new \DateTime('now', new DateTimeZone('UTC'))) / 3600; ?>h)
+                        </div>
+                        <div class="col-12 col-sm-4 text-end">
+                            <button type="submit" class="btn btn-sm btn-primary d-block d-sm-inline-block w-100">Save settings</button>
+                        </div>
+                    </div>
+                </form>
                 <?php foreach ($months as ['workdays' => $workdays, 'workSeconds' => $workSeconds, 'paidSeconds' => $paidSeconds]): ?>
                     <h2>
                         <small class="text-muted float-end">

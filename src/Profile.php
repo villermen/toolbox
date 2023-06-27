@@ -32,6 +32,21 @@ class Profile
         $this->auth = $auth;
     }
 
+    public function getSetting(string $key): mixed
+    {
+        return ($this->settings[$key] ?? null);
+    }
+
+    public function setSetting(string $key, mixed $value): void
+    {
+        if ($value === null) {
+            unset($this->settings[$key]);
+            return;
+        }
+
+        $this->settings = [...$this->settings, $key => $value];
+    }
+
     public function getSettings(): ?array
     {
         return $this->settings;
@@ -42,27 +57,21 @@ class Profile
      */
     public function getAutoBreak(?\DateTimeInterface $date = null): ?array
     {
+        $autoBreak = ($this->getSetting('autoBreak') ?? [true, '12:45', '13:15']);
+        if (!$autoBreak[0]) {
+            return null;
+        }
+
         $date = ($date
             ? \DateTimeImmutable::createFromInterface($date)->setTimezone($this->getTimezone())
             : new \DateTimeImmutable('today', $this->getTimezone())
         );
 
         return [
-            $date->modify('12:45'),
-            $date->modify('13:15'),
+            $date->modify($autoBreak[1]),
+            $date->modify($autoBreak[2]),
         ];
     }
-
-    // public function setAutoBreak(?\DateTimeInterface $start, ?\DateTimeInterface $end): void
-    // {
-    //     if ($start) {
-    //         Assert::eq($start->format('Ymd'), $end->format('Ymd'));
-    //         Assert::lessThan($start, $end);
-    //         $this->settings['autoBreak'] = [$start->format('h:i'), $end->format('h:i')];
-    //     } else {
-    //         unset($this->settings['autoBreak']);
-    //     }
-    // }
 
     public function getOrCreateWorkday(\DateTimeInterface $date): Workday
     {

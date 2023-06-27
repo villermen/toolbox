@@ -64,7 +64,7 @@ class CheckinService
 
             // Auto break.
             [$breakStart, $breakEnd] = $profile->getAutoBreak($time);
-            if ($breakStart && $incompleteRange->getStart() < $breakStart && $time > $breakEnd ) {
+            if ($breakStart && $incompleteRange->getStart() < $breakStart && $time > $breakEnd) {
                 $workday->finishRange($breakStart);
                 $workday->addRange(new Workrange(WorkrangeType::WORK, $breakEnd, null));
             }
