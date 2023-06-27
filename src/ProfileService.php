@@ -15,8 +15,16 @@ class ProfileService
         $profile = new Profile(
             $profileId,
             $data['auth'] ?? null,
-            $data['settings'] ?? null,
         );
+
+        if (isset($data['work'])) {
+            $profile->getWorkSettings()->setAutoBreakEnabled($data['work']['autoBreakEnabled']);
+            $profile->getWorkSettings()->setAutoBreakRange(
+                \DateTimeImmutable::createFromFormat('H:i', $data['work']['autoBreakStart'], $profile->getTimezone()),
+                \DateTimeImmutable::createFromFormat('H:i', $data['work']['autoBreakEnd'], $profile->getTimezone()),
+            );
+            $profile->getWorkSettings()->setSchedule($data['work']['schedule']);
+        }
 
         // Migrate checkins.
         $checkins = ($data['checkins'] ?? []);
@@ -74,8 +82,13 @@ class ProfileService
 
         $data = [
             'auth' => $profile->getAuth(),
-            'settings' => $profile->getSettings(),
             'workdays' => (object)$workdays,
+            'work' => [
+                'autoBreakEnabled' => $profile->getWorkSettings()->isAutoBreakEnabled(),
+                'autoBreakStart' => $profile->getWorkSettings()->getAutoBreakStart()->format('H:i'),
+                'autoBreakEnd' => $profile->getWorkSettings()->getAutoBreakEnd()->format('H:i'),
+                'schedule' => $profile->getWorkSettings()->getSchedule(),
+            ],
         ];
 
         if (!file_put_contents(self::getPath($profile->getId()), json_encode($data))) {

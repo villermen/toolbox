@@ -50,6 +50,13 @@ if ($action === 'checkin' || ($action === 'addRange' && !$start && $end)) {
 } elseif ($action === 'removeBreak') {
     $workday = $app->removeBreak($profile, $date);
     $app->addFlashMessage('success', sprintf('Removed break for %s.', $workday->getDate()->format('j-n-Y')));
+} elseif ($action === 'settings') {
+    try {
+        $app->updateSettings($profile, $_GET);
+        $app->addFlashMessage('success', 'Settings updated successfully.');
+    } catch (\InvalidArgumentException $exception) {
+        $app->addFlashMessage('danger', $exception->getMessage());
+    }
 } else {
     $app->addFlashMessage('danger', 'Invalid action specified.');
 }

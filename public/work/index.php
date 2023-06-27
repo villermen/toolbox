@@ -136,7 +136,7 @@ if ($profile) {
         $workday = $profile->getOrCreateWorkday($day);
         $months[$month]['workdays'][] = $workday;
         $months[$month]['workSeconds'] += $workday->getTotalDuration();
-        $months[$month]['paidSeconds'] += ($profile->getSchedule()[(int)$day->format('N') - 1] * 3600);
+        $months[$month]['paidSeconds'] += ($profile->getWorkSettings()->getSchedule()[(int)$day->format('N') - 1] * 3600);
 
         if (!$currentWorkday) {
             $currentWorkday = $workday;
@@ -180,7 +180,6 @@ if ($profile) {
                     <div class="lead d-inline-block"><?= $subtitle; ?></div>
                 </div>
                 <hr />
-                <?php [$breakStart, $breakEnd] = $profile->getAutoBreak(); ?>
                 <form method="get" action="<?= $app->createUrl('work/form.php'); ?>">
                     <input type="hidden" name="action" value="settings" />
                     <div class="row mb-2">
@@ -198,22 +197,36 @@ if ($profile) {
                                         role="switch"
                                         id="autoBreakEnabled"
                                         name="autoBreakEnabled"
-                                    <?php if ($breakStart): ?>
+                                    <?php if ($profile->getWorkSettings()->isAutoBreakEnabled()): ?>
                                         checked
                                     <?php endif; ?>
                                 />
                             </div>
-                            <div id="autoBreakRangeInputs" class="d-flex align-items-center gap-1 <?= ($breakStart ? '' : 'd-none'); ?>">
-                                <input type="time" id="autoBreakStart" name="autoBreakStart" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" value="<?= $breakStart->format('H:i'); ?>" />
+                            <div id="autoBreakRangeInputs" class="d-flex align-items-center gap-1 <?= ($profile->getWorkSettings()->isAutoBreakEnabled() ? '' : 'd-none'); ?>">
+                                <input
+                                    type="time"
+                                    id="autoBreakStart"
+                                    name="autoBreakStart"
+                                    class="form-control form-control-sm d-inline-block"
+                                    style="flex: 1 0 40px;"
+                                    value="<?= $profile->getWorkSettings()->getAutoBreakStart()->format('H:i'); ?>"
+                                />
                                 <div>-</div>
-                                <input type="time" id="autoBreakEnd" name="autoBreakEnd" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" value="<?= $breakEnd->format('H:i'); ?>" />
+                                <input
+                                    type="time"
+                                    id="autoBreakEnd"
+                                    name="autoBreakEnd"
+                                    class="form-control form-control-sm d-inline-block"
+                                    style="flex: 1 0 40px;"
+                                    value="<?= $profile->getWorkSettings()->getAutoBreakEnd()->format('H:i'); ?>"
+                                />
                             </div>
                         </div>
                     </div>
                     <div class="row mb-2">
                         <label for="schedule" class="col-4 col-sm-3 form-label">Schedule</label>
                         <div class="col-8 col-sm-5">
-                            <input type="text" id="schedule" name="schedule" class="form-control form-control-sm" value="<?= implode(',', $profile->getSchedule()); ?>" />
+                            <input type="text" id="schedule" name="schedule" class="form-control form-control-sm" value="<?= implode(',', $profile->getWorkSettings()->getSchedule()); ?>" />
                         </div>
                     </div>
                     <div class="row mb-4 gy-2">

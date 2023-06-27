@@ -17,6 +17,8 @@ class CheckinService
 
     public function addCheckin(Profile $profile, \DateTimeInterface $time): Workday
     {
+        $workSettings = $profile->getWorkSettings();
+
         $time = \DateTime::createFromInterface($time);
         $time->setTimezone($profile->getTimezone());
 
@@ -63,10 +65,13 @@ class CheckinService
             );
 
             // Auto break.
-            [$breakStart, $breakEnd] = $profile->getAutoBreak($time);
-            if ($breakStart && $incompleteRange->getStart() < $breakStart && $time > $breakEnd) {
-                $workday->finishRange($breakStart);
-                $workday->addRange(new Workrange(WorkrangeType::WORK, $breakEnd, null));
+            if ($workSettings->isAutoBreakEnabled()) {
+                $breakStart = $workSettings->getAutoBreakStart($time);
+                $breakEnd = $workSettings->getAutoBreakEnd($time);
+                if ($incompleteRange->getStart() < $breakStart && $time > $breakEnd) {
+                    $workday->finishRange($breakStart);
+                    $workday->addRange(new Workrange(WorkrangeType::WORK, $breakEnd, null));
+                }
             }
 
             $workday->finishRange($time);
@@ -87,7 +92,7 @@ class CheckinService
 
     public function addFullDay(Profile $profile, \DateTimeInterface $date, WorkrangeType $type): Workday
     {
-        $scheduleHours = $profile->getSchedule()[(int)$date->format('N') - 1];
+        $scheduleHours = $profile->getWorkSettings()->getSchedule()[(int)$date->format('N') - 1];
         Assert::greaterThan($scheduleHours, 0, 'Can\'t add full day when schedule says you\'re not working that day.');
 
         $start = \DateTimeImmutable::createFromInterface($date)->setTime(9, 0);
