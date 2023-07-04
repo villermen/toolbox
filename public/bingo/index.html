@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Viller's Bingo Bongo</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@700&display=swap" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+        <script src="./script.js" defer></script>
+    </head>
+    <body>
+        <div style="font: 0px 'Cabin Sketch', cursive;">Font loader</div>
+        <div style="width: 500px; display: inline-block; vertical-align: top;">
+            <form id="bongoForm">
+                <fieldset>
+                    <legend>Design</legend>
+                    <label>
+                        Background:
+                        <input type="file" id="backgroundImageInput" accept="image/*">
+                    </label><br />
+                    <label>
+                        Free spot:
+                        <input type="file" id="freeSpotImageInput" accept="image/*">
+                    </label><br />
+                    <label>
+                        StartX:
+                        <input type="number" name="startX" min="0" max="500" step="1" value="68" />
+                    </label><br />
+                    <label>
+                        StartY:
+                        <input type="number" name="startY" min="0" max="500" step="1" value="330" />
+                    </label><br />
+                    <label>
+                        Tile size:
+                        <input type="number" name="tileSize" min="0" max="500" step="1" value="169" />
+                    </label><br />
+                    <button type="button" id="overlayButton" style="float: right;">Toggle debug overlay</button>
+                    <label>
+                        Tile spacing:
+                        <input type="number" name="tileSpacing" min="0" max="500" step="1" value="37" />
+                    </label><br />
+                </fieldset>
+                <fieldset>
+                    <legend>Options</legend>
+                    <label>
+                        Options (one per line):<br />
+                        <textarea
+                            name="options"
+                            id="optionsInput"
+                            style="width: 100%; height: 400px; resize: vertical;"
+                        ></textarea>
+                    </label><br />
+                    <label>
+                        Seed:
+                        <input type="text" name="seed" id="seedInput" placeholder="Random!" />
+                    </label>
+                    <button type="button" id="bongoButton">Bongo!</button>
+                </fieldset>
+            </form>
+        </div>
+        <div style="width: 517px; resize: horizontal; overflow: scroll; display: inline-block; vertical-align: top;">
+            <fieldset>
+                <legend>Preview (save for full size)</legend>
+                <canvas id="cardCanvas" width="1127" height="1600" style="width: 100%;"></canvas>
+            </fieldset>
+        </div>
+    </body>
+</html>
