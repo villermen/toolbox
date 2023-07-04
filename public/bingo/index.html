@@ -1,69 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <title>Viller's Bingo Bongo</title>
+        <title>Bingo Bongo</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="../style.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@700&display=swap" rel="stylesheet">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-        <script src="./script.js" defer></script>
+        <script src="./bingo.js" defer></script>
     </head>
     <body>
         <div style="font: 0px 'Cabin Sketch', cursive;">Font loader</div>
-        <div style="width: 500px; display: inline-block; vertical-align: top;">
-            <form id="bongoForm">
-                <fieldset>
-                    <legend>Design</legend>
-                    <label>
-                        Background:
-                        <input type="file" id="backgroundImageInput" accept="image/*">
-                    </label><br />
-                    <label>
-                        Free spot:
-                        <input type="file" id="freeSpotImageInput" accept="image/*">
-                    </label><br />
-                    <label>
-                        StartX:
-                        <input type="number" name="startX" min="0" max="500" step="1" value="68" />
-                    </label><br />
-                    <label>
-                        StartY:
-                        <input type="number" name="startY" min="0" max="500" step="1" value="330" />
-                    </label><br />
-                    <label>
-                        Tile size:
-                        <input type="number" name="tileSize" min="0" max="500" step="1" value="169" />
-                    </label><br />
-                    <button type="button" id="overlayButton" style="float: right;">Toggle debug overlay</button>
-                    <label>
-                        Tile spacing:
-                        <input type="number" name="tileSpacing" min="0" max="500" step="1" value="37" />
-                    </label><br />
-                </fieldset>
-                <fieldset>
-                    <legend>Options</legend>
-                    <label>
-                        Options (one per line):<br />
-                        <textarea
-                            name="options"
-                            id="optionsInput"
-                            style="width: 100%; height: 400px; resize: vertical;"
-                        ></textarea>
-                    </label><br />
-                    <label>
-                        Seed:
-                        <input type="text" name="seed" id="seedInput" placeholder="Random!" />
-                    </label>
-                    <button type="button" id="bongoButton">Bongo!</button>
-                </fieldset>
-            </form>
-        </div>
-        <div style="width: 517px; resize: horizontal; overflow: scroll; display: inline-block; vertical-align: top;">
-            <fieldset>
-                <legend>Preview (save for full size)</legend>
-                <canvas id="cardCanvas" width="1127" height="1600" style="width: 100%;"></canvas>
-            </fieldset>
+        <div class="container mt-5 mb-5">
+            <h1>Bingo Bongo</h1>
+            <hr />
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Options</h3>
+                    <form id="bongoForm">
+                        <div class="form-group mb-2">
+                            <label class="form-label" for="backgroundImageInput">Background</label>
+                            <input class="form-control" type="file" id="backgroundImageInput" accept="image/*">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label" for="freeSpotImageInput">Free spot</label>
+                            <input class="form-control" type="file" id="freeSpotImageInput" accept="image/*">
+                        </div>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="startXInput">Horizontal offset</label>
+                            <div class="col-8">
+                                <div class="input-group">
+                                    <input class="form-control" type="number" name="startX" id="startXInput" min="0" max="500" step="1" value="68" />
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="startYInput">Vertical offset</label>
+                            <div class="col-8">
+                                <div class="input-group">
+                                    <input class="form-control" type="number" name="startY" id="startYInput" min="0" max="500" step="1" value="330" />
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="tileSizeInput">Tile size (width and height)</label>
+                            <div class="col-8">
+                                <div class="input-group">
+                                    <input class="form-control" type="number" name="tileSize" id="tileSizeInput" min="0" max="500" step="1" value="169" />
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="tileSpacingInput">Tile spacing (gutter)</label>
+                            <div class="col-8">
+                                <div class="input-group">
+                                    <input class="form-control" type="number" name="tileSpacing" id="tileSpacingInput" min="0" max="500" step="1" value="37" />
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <label class="form-label col-4" for="overlayCheckbox">Debug overlay</label>
+                            <div class="col-8">
+                                <div class="form-check form-switch">
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="overlayCheckbox"
+                                        name="overlayEnabled"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label" for="optionsInput">
+                                Options (<span id="optionCount">#</span>/24)
+                            </label>
+                            <textarea
+                                class="form-control"
+                                name="options"
+                                id="optionsInput"
+                                style="height: 400px; resize: vertical;"
+                            ></textarea>
+                        </div>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="seedInput">Seed</label>
+                            <div class="col-8">
+                                <input class="form-control" type="text" name="seed" id="seedInput" placeholder="Random!" />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="bongoButton">Bongo!</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <h3>Preview (save for full size)</h3>
+                    <div style="width: 100%; resize: horizontal; overflow: scroll; display: inline-block; vertical-align: top;">
+                        <canvas id="cardCanvas" width="1127" height="1600" style="width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </body>
 </html>

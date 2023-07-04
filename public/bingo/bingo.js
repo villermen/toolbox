@@ -8,8 +8,9 @@ const cardContext = cardCanvas.getContext('2d');
 
 const bongoForm = document.getElementById('bongoForm');
 const bongoButton = document.getElementById('bongoButton');
-const overlayButton = document.getElementById('overlayButton');
+const overlayCheckbox = document.getElementById('overlayCheckbox');
 const seedInput = document.getElementById('seedInput');
+const optionCount = document.getElementById('optionCount');
 
 const backgroundImageInput = document.getElementById('backgroundImageInput');
 const freeSpotImageInput = document.getElementById('freeSpotImageInput');
@@ -161,6 +162,8 @@ function render() {
     const options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
     const seed = (formData.get('seed') || fallbackSeed);
 
+    optionCount.innerText = options.length;
+
     const fontSize = (tileSize / 6);
     const width = (backgroundImage?.width ?? cardCanvas.width);
     const height = (backgroundImage?.height ?? cardCanvas.height);
@@ -263,9 +266,8 @@ function render() {
 // Event listeners
 bongoForm.addEventListener('change', () => render());
 
-// TODO: Either remove or update to cabin sketch
 document.fonts.ready.then(() => {
-    if (!document.fonts.check(`0 'Fredericka the Great'`)) {
+    if (!document.fonts.check(`0 'Cabin Sketch'`)) {
         console.error('Failed to load font!');
         return;
     }
@@ -278,8 +280,8 @@ bongoForm.addEventListener('submit', (event) => {
     render();
 });
 
-overlayButton.addEventListener('click', () => {
-    overlayEnabled = !overlayEnabled;
+overlayCheckbox.addEventListener('change', () => {
+    overlayEnabled = overlayCheckbox.checked;
     render();
 });
 
@@ -295,6 +297,11 @@ backgroundImageInput.addEventListener('change', async () => {
 });
 freeSpotImageInput.addEventListener('change', async () => {
     freeSpotImage = await loadImage(freeSpotImageInput.files[0]);
+    render();
+});
+
+// We need font to be ready before we render (no DOMContentLoaded)
+window.addEventListener('load', () => {
     render();
 });
 
