@@ -1,12 +1,6 @@
 // TODO: Packing, auto refresh, local storage, font
 
 const { jsPDF } = window.jspdf;
-jsPdf = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-    compress: true,
-});
 
 /** @type {HTMLCanvasElement} */
 const cardCanvas = document.getElementById('cardCanvas');
@@ -250,12 +244,20 @@ function render() {
     }
 
     const pdfImage = cardCanvas.toDataURL('image/png');
-
-
-    // TODO: Smarter would be to reuse the background image with an alias and draw into the PDF directly. With pdfobject embed.
-    jsPdf.addImage(pdfImage, 'PNG', 0, 0, 210, 297);
-    // jsPdf.addPage('a4', 'portrait');
-    jsPdf.save('bongo.pdf');
+    // const pdf = new jsPDF({
+    //     orientation: 'portrait',
+    //     unit: 'mm',
+    //     format: 'a4',
+    //     compress: true,
+    // });
+    // TODO: Smarter (way more space efficient) would be to reuse the background image with an alias and draw into the PDF directly. With pdfobject embed.
+    // pdf.addImage(pdfImage, 'PNG', 0, 0, 210, 297, 'background');
+    // for (let i = 0; i < 199; i++) {
+    //     pdf.addPage('a4', 'portrait');
+    //     pdf.addImage(pdfImage, 'PNG', 0, 0, 210, 297, String(i));
+    // }
+    //
+    // pdf.save('bongo.pdf');
 }
 
 // Event listeners
