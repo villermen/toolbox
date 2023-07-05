@@ -187,8 +187,9 @@ function render() {
     }
 
     pdf.addFileToVFS('bingo.ttf', font);
-    pdf.addFont('bingo.ttf', 'bingo', 'Regular');
-    pdf.setFont('bingo', 'Regular');
+    pdf.addFont('bingo.ttf', 'bingo', 'Bold');
+    pdf.setFont('bingo', 'Bold');
+    pdf.setFontSize(20);
     pdf.text('Example Text in Cabin Sketch', 10, 10, {
         maxWidth: 50,
     });
@@ -276,15 +277,6 @@ function render() {
 
 // Event listeners
 bongoForm.addEventListener('change', () => render());
-
-document.fonts.ready.then(() => {
-    if (!document.fonts.check(`0 'Cabin Sketch'`)) {
-        console.error('Failed to load font!');
-        return;
-    }
-
-    fontLoaded = true;
-});
 
 bongoForm.addEventListener('submit', (event) => {
     event.preventDefault();
