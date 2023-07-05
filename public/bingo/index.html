@@ -5,14 +5,10 @@
         <title>Bingo Bongo</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="../style.css">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@700&display=swap" rel="stylesheet">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
         <script src="./bingo.js" defer></script>
     </head>
     <body>
-        <div style="font: 0px 'Cabin Sketch', cursive;">Font loader</div>
         <div class="container mt-5 mb-5">
             <h1>Bingo Bongo</h1>
             <hr />
@@ -21,12 +17,18 @@
                     <h3>Options</h3>
                     <form id="bongoForm">
                         <div class="form-group mb-2">
-                            <label class="form-label" for="backgroundImageInput">Background</label>
+                            <label class="form-label" for="backgroundImageInput">Background (ratio: 1x1.4142, A-paper ratio)</label>
                             <input class="form-control" type="file" id="backgroundImageInput" accept="image/*">
                         </div>
                         <div class="form-group mb-2">
                             <label class="form-label" for="freeSpotImageInput">Free spot</label>
                             <input class="form-control" type="file" id="freeSpotImageInput" accept="image/*">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label" for="fontSelect">Font</label>
+                            <select class="form-control" id="fontSelect">
+                                <option value="Cabin Sketch" style="font-family: 'Cabin Sketch';">Cabin Sketch</option>
+                            </select>
                         </div>
                         <div class="row mb-2">
                             <label class="col-form-label col-4" for="startXInput">Horizontal offset</label>
@@ -80,7 +82,7 @@
                         </div>
                         <div class="form-group mb-2">
                             <label class="form-label" for="optionsInput">
-                                Options (<span id="optionCount">#</span>/24)
+                                Options (one per line, <span id="optionCount">#</span>/24)
                             </label>
                             <textarea
                                 class="form-control"
@@ -99,10 +101,8 @@
                     </form>
                 </div>
                 <div class="col-md-6">
-                    <h3>Preview (save for full size)</h3>
-                    <div style="width: 100%; resize: horizontal; overflow: scroll; display: inline-block; vertical-align: top;">
-                        <canvas id="cardCanvas" width="1127" height="1600" style="width: 100%;"></canvas>
-                    </div>
+                    <h3>Preview</h3>
+                    <embed id="previewEmbed" type="application/pdf" style="width:100%; height: 100%;" />
                 </div>
             </div>
         </div>

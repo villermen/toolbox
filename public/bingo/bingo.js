@@ -1,28 +1,33 @@
-// TODO: Packing, auto refresh, local storage, font
-
+// TODO: Save settings in localStorage.
 const { jsPDF } = window.jspdf;
-
-/** @type {HTMLCanvasElement} */
-const cardCanvas = document.getElementById('cardCanvas');
-const cardContext = cardCanvas.getContext('2d');
 
 const bongoForm = document.getElementById('bongoForm');
 const bongoButton = document.getElementById('bongoButton');
-const overlayCheckbox = document.getElementById('overlayCheckbox');
-const seedInput = document.getElementById('seedInput');
 const optionCount = document.getElementById('optionCount');
-
 const backgroundImageInput = document.getElementById('backgroundImageInput');
 const freeSpotImageInput = document.getElementById('freeSpotImageInput');
+const previewEmbed = document.getElementById('previewEmbed');
 
 /** @type {HTMLImageElement|null} */
 let backgroundImage = null;
 /** @type {HTMLImageElement|null} */
 let freeSpotImage = null;
 
-let overlayEnabled = false;
 let fontLoaded = false;
 let fallbackSeed = createRandomSeed();
+
+// TODO: This can hopefully be simplified.
+let font = null;
+fetch('./CabinSketch-Regular.ttf').then((response) => {
+    response.blob().then((blob) => {
+        console.log(blob, btoa(blob));
+        const fileReader = new FileReader();
+        fileReader.readAsDataURL(blob);
+        fileReader.onloadend = () => {
+            font = fileReader.result.replace(/^data:font\/ttf;base64,/, '');
+        }
+    });
+});
 
 /**
  * @param {File} file
@@ -155,111 +160,117 @@ function render() {
     // Parse form values.
     const formData = new FormData(bongoForm);
 
+    // TODO: Load images here too (with cache).
     const startX = Number(formData.get('startX'));
     const startY = Number(formData.get('startY'));
     const tileSize = Number(formData.get('tileSize'));
     const tileSpacing = Number(formData.get('tileSpacing'));
     const options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
     const seed = (formData.get('seed') || fallbackSeed);
+    const overlayEnabled = formData.get('overlayEnabled');
 
     optionCount.innerText = options.length;
 
     const fontSize = (tileSize / 6);
-    const width = (backgroundImage?.width ?? cardCanvas.width);
-    const height = (backgroundImage?.height ?? cardCanvas.height);
 
-    cardCanvas.width = width;
-    cardCanvas.height = height;
+    const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+    });
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
 
     if (backgroundImage) {
-        cardContext.drawImage(backgroundImage, 0, 0);
+        pdf.addImage(backgroundImage, 'PNG', 0, 0, width, height, 'background');
     }
+
+    pdf.addFileToVFS('bingo.ttf', font);
+    pdf.addFont('bingo.ttf', 'bingo', 'Regular');
+    pdf.setFont('bingo', 'Regular');
+    pdf.text('Example Text in Cabin Sketch', 10, 10, {
+        maxWidth: 50,
+    });
+
+
 
     // Debug information.
-    if (overlayEnabled) {
-        cardContext.font = '20px sans-serif';
-        cardContext.fillStyle = 'black';
-        cardContext.textBaseline = 'top';
-        cardContext.textAlign = 'right';
-        let debugTextY = 10;
-
-        /** @param {string} message */
-        function drawDebugMessage(message) {
-            cardContext.fillText(message, width - 10, debugTextY);
-            debugTextY += 22;
-        }
-
-        drawDebugMessage('Viller\'s Bingo Bongo v0.2');
-        drawDebugMessage(`Seed: ${seed}`);
-
-        if (!backgroundImage) {
-            drawDebugMessage('No background image!');
-        }
-        if (!fontLoaded) {
-            drawDebugMessage('Font not loaded!');
-        }
-        if (options.length < 24) {
-            drawDebugMessage(`Not enough options (${options.length}/24)!`);
-        }
-    }
-
-    // Shuffle and limit options.
-    const random = createRandom(seed);
-    let remainingOptions = [...options];
-    const shuffledOptions = [];
-    while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
-        shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
-    }
-
-    // Draw tiles.
-    cardContext.textAlign = 'center';
-    cardContext.textBaseline = 'middle';
-    cardContext.fillStyle = 'black';
-    cardContext.font = `${fontSize}px 'Cabin Sketch', cursive`;
-
-    for (let tileId = 0; tileId < 25; tileId++) {
-        const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
-        const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
-
-        if (tileId === 12) {
-            // Draw free spot image.
-            if (freeSpotImage) {
-                cardContext.drawImage(freeSpotImage, tileX, tileY, tileSize, tileSize);
-            }
-            continue;
-        }
-
-        if (overlayEnabled) {
-            cardContext.strokeStyle = 'lime';
-            cardContext.lineWidth = 1;
-            cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
-        }
-
-        const optionIndex = (tileId < 12 ? tileId : tileId -1);
-        if (optionIndex < shuffledOptions.length) {
-            const lines = splitText(shuffledOptions[optionIndex], 6);
-            let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
-            lines.forEach((line) => {
-                cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
-                lineY += fontSize;
-            });
-        }
-    }
-
-    const pdfImage = cardCanvas.toDataURL('image/png');
-    // const pdf = new jsPDF({
-    //     orientation: 'portrait',
-    //     unit: 'mm',
-    //     format: 'a4',
-    //     compress: true,
-    // });
-    // TODO: Smarter (way more space efficient) would be to reuse the background image with an alias and draw into the PDF directly. With pdfobject embed.
-    // pdf.addImage(pdfImage, 'PNG', 0, 0, 210, 297, 'background');
-    // for (let i = 0; i < 199; i++) {
-    //     pdf.addPage('a4', 'portrait');
-    //     pdf.addImage(pdfImage, 'PNG', 0, 0, 210, 297, String(i));
+    // if (overlayEnabled) {
+    //     cardContext.font = '20px sans-serif';
+    //     cardContext.fillStyle = 'black';
+    //     cardContext.textBaseline = 'top';
+    //     cardContext.textAlign = 'right';
+    //     let debugTextY = 10;
+    //
+    //     /** @param {string} message */
+    //     function drawDebugMessage(message) {
+    //         cardContext.fillText(message, width - 10, debugTextY);
+    //         debugTextY += 22;
+    //     }
+    //
+    //     drawDebugMessage('Viller\'s Bingo Bongo v0.2');
+    //     drawDebugMessage(`Seed: ${seed}`);
+    //
+    //     if (!backgroundImage) {
+    //         drawDebugMessage('No background image!');
+    //     }
+    //     if (!fontLoaded) {
+    //         drawDebugMessage('Font not loaded!');
+    //     }
+    //     if (options.length < 24) {
+    //         drawDebugMessage(`Not enough options (${options.length}/24)!`);
+    //     }
     // }
     //
+    // // Shuffle and limit options.
+    // const random = createRandom(seed);
+    // let remainingOptions = [...options];
+    // const shuffledOptions = [];
+    // while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
+    //     shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
+    // }
+    //
+    // // Draw tiles.
+    // cardContext.textAlign = 'center';
+    // cardContext.textBaseline = 'middle';
+    // cardContext.fillStyle = 'black';
+    // cardContext.font = `${fontSize}px 'Cabin Sketch', cursive`;
+    //
+    // for (let tileId = 0; tileId < 25; tileId++) {
+    //     const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
+    //     const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
+    //
+    //     if (tileId === 12) {
+    //         // Draw free spot image.
+    //         if (freeSpotImage) {
+    //             cardContext.drawImage(freeSpotImage, tileX, tileY, tileSize, tileSize);
+    //         }
+    //         continue;
+    //     }
+    //
+    //     if (overlayEnabled) {
+    //         cardContext.strokeStyle = 'lime';
+    //         cardContext.lineWidth = 1;
+    //         cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
+    //     }
+    //
+    //     const optionIndex = (tileId < 12 ? tileId : tileId -1);
+    //     if (optionIndex < shuffledOptions.length) {
+    //         const lines = splitText(shuffledOptions[optionIndex], 6);
+    //         let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
+    //         lines.forEach((line) => {
+    //             cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
+    //             lineY += fontSize;
+    //         });
+    //     }
+    // }
+
+    const pdfData = pdf.output('datauristring', {
+        filename: 'bingo-preview.pdf',
+    });
+    previewEmbed.src = pdfData;
+
     // pdf.save('bongo.pdf');
 }
 
@@ -304,31 +315,3 @@ freeSpotImageInput.addEventListener('change', async () => {
 window.addEventListener('load', () => {
     render();
 });
-
-const prefillOptions = [
-    'Kabouter Plop - Kabouterdans',
-    'George Baker Selection - Una Paloma Blanca',
-    'Gebroeders Ko - Toeter Op M\'n Waterscooter',
-    'Cyndi Lauper - Girls Just Want to Have Fun',
-    'Five - Everybody Get Up',
-    'Toy-Box - Tarzan & Jane',
-    'O-Zone - Dragonstea Din Tei',
-    'Bassie & Adriaan - Hallo Vriendjes',
-    'K-otic - Damn (I Think I Love You)',
-    'Marianne Rosenberg - Ich Bin Wie Du',
-    'Paul de Leeuw - Vlieg Met Me Mee',
-    'Wham! - Wake Me Up Before You Go-Go',
-    'Jody Bernal - Que Si, Que No',
-    'De Jeugd van Tegenwoordig - Sterrenstof',
-    'Jason Paige - Pokémon Theme Song',
-    'André Hazes - Leef',
-    'AC/DC - Thunderstruck',
-    '"Weird Al" Yankovic - NOW That\'s What I call Polka!',
-    'The Swedish Chef - Popcorn',
-    'Rednex - Cotton Eye Joe',
-    'Gigi D\'Agostino - L\'Amours Toujours',
-    'Anita Meyer - Why Tell Me Why',
-    'Village People - YMCA',
-    'Vinzzent - Dromendans',
-];
-optionsInput.value = prefillOptions.join('\n');
