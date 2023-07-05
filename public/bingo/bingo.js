@@ -13,14 +13,13 @@ let backgroundImage = null;
 /** @type {HTMLImageElement|null} */
 let freeSpotImage = null;
 
-let fontLoaded = false;
 let fallbackSeed = createRandomSeed();
 
 // TODO: This can hopefully be simplified.
+// TODO: Wait for load before initial render.
 let font = null;
 fetch('./CabinSketch-Regular.ttf').then((response) => {
     response.blob().then((blob) => {
-        console.log(blob, btoa(blob));
         const fileReader = new FileReader();
         fileReader.readAsDataURL(blob);
         fileReader.onloadend = () => {
@@ -117,7 +116,7 @@ function splitText(text, maxLines) {
     }
 
     while (lines.length < maxLines) {
-        // Split longest splittable line (long enough and cointains space).
+        // Split longest splittable line (long enough and contains space).
         const splitLine = lines
             .filter((line) => line.length >= 12 && line.match(/ /) !== null)
             .reduce((previous, current) => {
@@ -156,15 +155,24 @@ function splitText(text, maxLines) {
     return lines;
 }
 
+/**
+ *
+ * @param {number|string} mm
+ * @return {number}
+ */
+function mmToPt(mm) {
+    return Number(mm) * 0.75;
+}
+
 function render() {
     // Parse form values.
     const formData = new FormData(bongoForm);
 
     // TODO: Load images here too (with cache).
-    const startX = Number(formData.get('startX'));
-    const startY = Number(formData.get('startY'));
-    const tileSize = Number(formData.get('tileSize'));
-    const tileSpacing = Number(formData.get('tileSpacing'));
+    const startX = mmToPt(formData.get('startX'));
+    const startY = mmToPt(formData.get('startY'));
+    const tileSize = mmToPt(formData.get('tileSize'));
+    const tileSpacing = mmToPt(formData.get('tileSpacing'));
     const options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
     const seed = (formData.get('seed') || fallbackSeed);
     const overlayEnabled = formData.get('overlayEnabled');
@@ -175,97 +183,94 @@ function render() {
 
     const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'mm',
+        unit: 'pt', // Native unit of PDF
         format: 'a4',
         compress: true,
     });
-    const width = pdf.internal.pageSize.getWidth();
-    const height = pdf.internal.pageSize.getHeight();
-
-    if (backgroundImage) {
-        pdf.addImage(backgroundImage, 'PNG', 0, 0, width, height, 'background');
-    }
-
     pdf.addFileToVFS('bingo.ttf', font);
     pdf.addFont('bingo.ttf', 'bingo', 'Bold');
-    pdf.setFont('bingo', 'Bold');
-    pdf.setFontSize(20);
-    pdf.text('Example Text in Cabin Sketch', 10, 10, {
-        maxWidth: 50,
-    });
 
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+    console.log(width, height);
 
+    if (backgroundImage) {
+        pdf.addImage(backgroundImage, null, 0, 0, width, height, 'background');
+    }
 
     // Debug information.
-    // if (overlayEnabled) {
-    //     cardContext.font = '20px sans-serif';
-    //     cardContext.fillStyle = 'black';
-    //     cardContext.textBaseline = 'top';
-    //     cardContext.textAlign = 'right';
-    //     let debugTextY = 10;
-    //
-    //     /** @param {string} message */
-    //     function drawDebugMessage(message) {
-    //         cardContext.fillText(message, width - 10, debugTextY);
-    //         debugTextY += 22;
-    //     }
-    //
-    //     drawDebugMessage('Viller\'s Bingo Bongo v0.2');
-    //     drawDebugMessage(`Seed: ${seed}`);
-    //
-    //     if (!backgroundImage) {
-    //         drawDebugMessage('No background image!');
-    //     }
-    //     if (!fontLoaded) {
-    //         drawDebugMessage('Font not loaded!');
-    //     }
-    //     if (options.length < 24) {
-    //         drawDebugMessage(`Not enough options (${options.length}/24)!`);
-    //     }
-    // }
-    //
-    // // Shuffle and limit options.
-    // const random = createRandom(seed);
-    // let remainingOptions = [...options];
-    // const shuffledOptions = [];
-    // while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
-    //     shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
-    // }
-    //
-    // // Draw tiles.
-    // cardContext.textAlign = 'center';
-    // cardContext.textBaseline = 'middle';
-    // cardContext.fillStyle = 'black';
-    // cardContext.font = `${fontSize}px 'Cabin Sketch', cursive`;
-    //
-    // for (let tileId = 0; tileId < 25; tileId++) {
-    //     const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
-    //     const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
-    //
-    //     if (tileId === 12) {
-    //         // Draw free spot image.
-    //         if (freeSpotImage) {
-    //             cardContext.drawImage(freeSpotImage, tileX, tileY, tileSize, tileSize);
-    //         }
-    //         continue;
-    //     }
-    //
-    //     if (overlayEnabled) {
-    //         cardContext.strokeStyle = 'lime';
-    //         cardContext.lineWidth = 1;
-    //         cardContext.strokeRect(tileX, tileY, tileSize, tileSize);
-    //     }
-    //
-    //     const optionIndex = (tileId < 12 ? tileId : tileId -1);
-    //     if (optionIndex < shuffledOptions.length) {
-    //         const lines = splitText(shuffledOptions[optionIndex], 6);
-    //         let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
-    //         lines.forEach((line) => {
-    //             cardContext.fillText(line, tileX + (tileSize / 2), lineY, tileSize);
-    //             lineY += fontSize;
-    //         });
-    //     }
-    // }
+    if (overlayEnabled) {
+        pdf.setFont('Helvetica');
+        pdf.setFontSize(15);
+        pdf.setTextColor('#000000');
+
+        let debugTextY = 10;
+
+        /** @param {string} message */
+        function drawDebugMessage(message) {
+            pdf.text(message, width - 10, debugTextY, {
+                baseline: 'top',
+                align: 'right',
+            });
+            debugTextY += 20;
+        }
+
+        drawDebugMessage(`Seed: ${seed}`);
+
+        if (!backgroundImage) {
+            drawDebugMessage('No background image!');
+        }
+        if (options.length < 24) {
+            drawDebugMessage(`Not enough options (${options.length}/24)!`);
+        }
+    }
+
+    // Shuffle and limit options.
+    const random = createRandom(seed);
+    let remainingOptions = [...options];
+    const shuffledOptions = [];
+    while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
+        shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
+    }
+
+    // Draw tiles.
+    pdf.setFont('bingo', 'Bold');
+    pdf.setFontSize(fontSize * 0.75);
+    pdf.setTextColor(0, 0, 0);
+
+    for (let tileId = 0; tileId < 25; tileId++) {
+        const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
+        const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
+
+        if (tileId === 12) {
+            // Draw free spot image.
+            if (freeSpotImage) {
+                pdf.addImage(freeSpotImage, null, tileX, tileY, tileSize, tileSize, 'free_spot');
+            }
+            continue;
+        }
+
+        if (overlayEnabled) {
+            pdf.setDrawColor(0, 255, 0);
+            pdf.setLineWidth(1);
+            pdf.rect(tileX, tileY, tileSize, tileSize);
+        }
+
+        const optionIndex = (tileId < 12 ? tileId : tileId -1);
+        if (optionIndex < shuffledOptions.length) {
+            const lines = splitText(shuffledOptions[optionIndex], 6);
+            let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
+            lines.forEach((line) => {
+                pdf.text(line, tileX + (tileSize / 2), lineY, {
+                    maxWidth: tileSize,
+                    align: 'center',
+                    baseline: 'middle',
+
+                });
+                lineY += fontSize;
+            });
+        }
+    }
 
     const pdfData = pdf.output('datauristring', {
         filename: 'bingo-preview.pdf',
