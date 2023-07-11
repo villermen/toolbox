@@ -3,6 +3,7 @@ const { jsPDF } = window.jspdf;
 
 const bongoForm = document.getElementById('bongoForm');
 const bongoButton = document.getElementById('bongoButton');
+const optionsInput = document.getElementById('optionsInput');
 const optionCount = document.getElementById('optionCount');
 const backgroundImageInput = document.getElementById('backgroundImageInput');
 const freeSpotImageInput = document.getElementById('freeSpotImageInput');
@@ -14,6 +15,12 @@ let backgroundImage = null;
 let freeSpotImage = null;
 
 let fallbackSeed = createRandomSeed();
+
+const placeholderOptions = [];
+for (let i = 1; i <= 24; i++) {
+    placeholderOptions.push(`Artist${i} - Song${i}`);    
+}
+optionsInput.placeholder = placeholderOptions.join('\n');
 
 // TODO: This can hopefully be simplified.
 // TODO: Wait for load before initial render.
@@ -57,6 +64,7 @@ function loadImage(file) {
  * https://stackoverflow.com/a/47593316
  *
  * @param {string} seed
+ * @returns {() => number}
  */
 function createRandom(seed) {
     function xmur3(str) {
@@ -100,6 +108,40 @@ function createRandomSeed() {
 }
 
 /**
+ * @param {string} value 
+ * @returns {string[]}
+ */
+function parseSeedValue(value) {
+    if (!value) {
+        return [fallbackSeed];
+    }
+
+    let seeds = [];
+    value.split(',').forEach((subvalue) => {
+        const rangeMatches = value.match(/(\d+)-(\d+)/)
+        if (!rangeMatches) {
+            seeds.push(subvalue);
+            return;
+        }
+
+        const rangeMin = Math.min(Number(rangeMatches[1]), Number(rangeMatches[2]));
+        const rangeMax = Math.max(Number(rangeMatches[1]), Number(rangeMatches[2]));
+
+        if (rangeMax - rangeMin > 1000) {
+            console.warn(`Not expanding seed range ${rangeMin}-${rangeMax} because it exceeds 1000 page limit.`);
+            seeds.push(subvalue);
+            return;
+        }
+
+        for (let i = rangeMin; i <= rangeMax; i++) {
+            seeds.push(i);
+        }
+    });
+
+    return seeds;
+}
+
+/**
  * Splits text very subjectively.
  *
  * @param {string} text
@@ -107,7 +149,6 @@ function createRandomSeed() {
  */
 function splitText(text, maxLines) {
     let lines = [text.replace(/\s+/, ' ').trim()];
-    let linesLeft = maxLines - 1;
 
     // Split standalone separators.
     const split = text.split(/ (\W) /);
@@ -160,20 +201,29 @@ function render() {
     const formData = new FormData(bongoForm);
 
     // TODO: Load images here too (with cache).
-    const options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
-    const seed = (formData.get('seed') || fallbackSeed);
+    let options = formData.get('options');
+    if (options) {
+        options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
+    } else {
+        options = placeholderOptions;
+    }
+    
+    const seeds = parseSeedValue(formData.get('seed'));
     const overlayEnabled = formData.get('overlayEnabled');
 
+    const pageFormat = 'a4';
+
+    // TODO: Should probably not be done on render but in some kind of validation function.
     optionCount.innerText = options.length;
 
     const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'pt', // Native unit of PDF.
-        format: 'a4',
+        format: pageFormat,
         compress: true,
     });
     pdf.addFileToVFS('bingo.ttf', font);
-    pdf.addFont('bingo.ttf', 'bingo', 'Bold');
+    pdf.addFont('bingo.ttf', 'bingo', '');
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -184,92 +234,94 @@ function render() {
     const tileSize = Number(formData.get('tileSize')) / 100.0 * pageWidth;
     const tileSpacing = Number(formData.get('tileSpacing')) / 100.0 * pageWidth;
 
-    console.log({
-        pageWidth,
-        pageHeight,
-        startX,
-        startY,
-        tileSize,
-        tileSpacing,
-    });
-
-    if (backgroundImage) {
-        pdf.addImage(backgroundImage, null, 0, 0, pageWidth, pageHeight, 'background');
-    }
-
-    // Debug information.
-    if (overlayEnabled) {
-        pdf.setFont('Helvetica');
-        pdf.setFontSize(15);
-        pdf.setTextColor('#000000');
-
-        let debugTextY = 10;
-
-        /** @param {string} message */
-        function drawDebugMessage(message) {
-            pdf.text(message, pageWidth - 10, debugTextY, {
-                baseline: 'top',
-                align: 'right',
-            });
-            debugTextY += 20;
+    seeds.forEach((seed, i) => {
+        if (i > 0) {
+            pdf.addPage(pageFormat, 'portrait');
         }
 
-        drawDebugMessage(`Seed: ${seed}`);
-
-        if (!backgroundImage) {
-            drawDebugMessage('No background image!');
+        if (backgroundImage) {
+            pdf.addImage(backgroundImage, null, 0, 0, pageWidth, pageHeight, 'background');
         }
-        if (options.length < 24) {
-            drawDebugMessage(`Not enough options (${options.length}/24)!`);
-        }
-    }
-
-    // Shuffle and limit options.
-    const random = createRandom(seed);
-    let remainingOptions = [...options];
-    const shuffledOptions = [];
-    while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
-        shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
-    }
-
-    // Draw tiles.
-    const fontSize = (tileSize / 6);
-    pdf.setFont('bingo', 'Bold');
-    pdf.setFontSize(fontSize);
-    pdf.setTextColor(0, 0, 0);
-
-    for (let tileId = 0; tileId < 25; tileId++) {
-        const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
-        const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
-
-        if (tileId === 12) {
-            // Draw free spot image.
-            if (freeSpotImage) {
-                pdf.addImage(freeSpotImage, null, tileX, tileY, tileSize, tileSize, 'free_spot');
-            }
-            continue;
-        }
-
+    
+        // Debug information.
         if (overlayEnabled) {
-            pdf.setDrawColor(0, 255, 0);
-            pdf.setLineWidth(1);
-            pdf.rect(tileX, tileY, tileSize, tileSize);
+            pdf.setFont('Helvetica', '');
+            pdf.setFontSize(15);
+            pdf.setTextColor(0, 0, 0);
+    
+            let debugTextY = 10;
+    
+            /** @param {string|null} [message=null] */
+            function drawDebugLine(message = null) {
+                if (message) {
+                    pdf.text(message, pageWidth - 10, debugTextY, {
+                        baseline: 'top',
+                        align: 'right',
+                    });
+                }
+                debugTextY += 20;
+            }
+    
+            drawDebugLine(`Seed: ${seed}`);
+            if (!backgroundImage) {
+                drawDebugLine('No background image!');
+            }
+            if (options.length < 24) {
+                drawDebugLine(`Not enough options (${options.length}/24)!`);
+            }
+            drawDebugLine('');
+            drawDebugLine(`Page size: ${pageWidth}x${pageHeight}pt`);
+            drawDebugLine(`Tile offset: ${startX}x${startY}pt`);
+            drawDebugLine(`Tile size+spacing: ${tileSize}+${tileSpacing}pt`);
         }
-
-        const optionIndex = (tileId < 12 ? tileId : tileId -1);
-        if (optionIndex < shuffledOptions.length) {
-            const lines = splitText(shuffledOptions[optionIndex], 6);
-            let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
-            lines.forEach((line) => {
-                pdf.text(line, tileX + (tileSize / 2), lineY, {
-                    // maxWidth: tileSize, Option is out there, but we've already taken (better) manual control.
-                    align: 'center',
-                    baseline: 'middle',
+    
+        // Shuffle and limit options.
+        const random = createRandom(seed);
+        let remainingOptions = [...options];
+        const shuffledOptions = [];
+        while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
+            shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
+        }
+    
+        // Draw tiles.
+        const fontSize = (tileSize / 6);
+        pdf.setFont('bingo', '');
+        pdf.setFontSize(fontSize);
+        pdf.setTextColor(0, 0, 0);
+    
+        for (let tileId = 0; tileId < 25; tileId++) {
+            const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
+            const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
+    
+            if (tileId === 12) {
+                // Draw free spot image.
+                if (freeSpotImage) {
+                    pdf.addImage(freeSpotImage, null, tileX, tileY, tileSize, tileSize, 'free_spot');
+                }
+                continue;
+            }
+    
+            if (overlayEnabled) {
+                pdf.setDrawColor(0, 255, 0);
+                pdf.setLineWidth(0.75); // 1px
+                pdf.rect(tileX, tileY, tileSize, tileSize);
+            }
+    
+            const optionIndex = (tileId < 12 ? tileId : tileId -1);
+            if (optionIndex < shuffledOptions.length) {
+                const lines = splitText(shuffledOptions[optionIndex], 6);
+                let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
+                lines.forEach((line) => {
+                    pdf.text(line, tileX + (tileSize / 2), lineY, {
+                        // maxWidth: tileSize, Option is out there, but we've already taken (better) manual control.
+                        align: 'center',
+                        baseline: 'middle',
+                    });
+                    lineY += fontSize;
                 });
-                lineY += fontSize;
-            });
+            }
         }
-    }
+    });
 
     const pdfData = pdf.output('datauristring', {
         filename: 'bingo-preview.pdf',
@@ -292,6 +344,7 @@ overlayCheckbox.addEventListener('change', () => {
     render();
 });
 
+// TODO: On submit.
 bongoButton.addEventListener('click', () => {
     // Force refresh fallback seed so it stays the same unless the power of the bongo is wielded.
     fallbackSeed = createRandomSeed();

@@ -91,14 +91,17 @@
                                 id="optionsInput"
                                 style="height: 400px; resize: vertical;"
                             ></textarea>
-                            <script>
-                                document.getElementById('optionsInput').value = Array(24).fill('Artist - Song').join('\n');
-                            </script>
                         </div>
                         <div class="row mb-2">
-                            <label class="col-form-label col-4" for="seedInput">Seed</label>
+                            <label class="col-form-label col-4" for="seedInput">Seed (value/range)</label>
                             <div class="col-8">
                                 <input class="form-control" type="text" name="seed" id="seedInput" placeholder="Random!" />
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="footerInput">Footer (TODO)</label>
+                            <div class="col-8">
+                                <input class="form-control" type="text" name="footer" id="footerInput" value="B01-{seed}" />
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100" id="bongoButton">Bongo!</button>
