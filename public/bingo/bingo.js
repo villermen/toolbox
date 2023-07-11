@@ -2,17 +2,19 @@
 const { jsPDF } = window.jspdf;
 
 const bongoForm = document.getElementById('bongoForm');
-const bongoButton = document.getElementById('bongoButton');
 const optionsInput = document.getElementById('optionsInput');
 const optionCount = document.getElementById('optionCount');
 const backgroundImageInput = document.getElementById('backgroundImageInput');
 const freeSpotImageInput = document.getElementById('freeSpotImageInput');
+const fontSelect = document.getElementById('fontSelect');
 const previewEmbed = document.getElementById('previewEmbed');
 
 /** @type {HTMLImageElement|null} */
 let backgroundImage = null;
 /** @type {HTMLImageElement|null} */
 let freeSpotImage = null;
+/** @type {string|null} */
+let font = null;
 
 let fallbackSeed = createRandomSeed();
 
@@ -22,18 +24,6 @@ for (let i = 1; i <= 24; i++) {
 }
 optionsInput.placeholder = placeholderOptions.join('\n');
 
-// TODO: This can hopefully be simplified.
-// TODO: Wait for load before initial render.
-let font = null;
-fetch('./CabinSketch-Bold.ttf').then((response) => {
-    response.blob().then((blob) => {
-        const fileReader = new FileReader();
-        fileReader.readAsDataURL(blob);
-        fileReader.onloadend = () => {
-            font = fileReader.result.replace(/^data:font\/ttf;base64,/, '');
-        }
-    });
-});
 
 /**
  * @param {File} file
@@ -56,6 +46,33 @@ function loadImage(file) {
         })
         fileReader.addEventListener('error', () => {
             reject('Could not read file!');
+        });
+    });
+}
+
+/**
+ * @param {string} fontName 
+ * @returns {Promise<string>}
+ */
+function loadFont(fontName) {
+    let fontFile = null;
+    switch (fontName) {
+        case 'cabinsketch':
+            fontFile = 'CabinSketch-Bold.ttf';
+            break;
+        default:
+            throw Error('Invalid font name specified!');
+    }
+
+    return new Promise((resolve, reject) => {
+        fetch(`./${fontFile}`).then((response) => {
+            response.blob().then((blob) => {
+                const fileReader = new FileReader();
+                fileReader.readAsDataURL(blob);
+                fileReader.onloadend = () => {
+                    resolve(fileReader.result.replace(/^data:font\/ttf;base64,/, ''));
+                }
+            });
         });
     });
 }
@@ -205,7 +222,7 @@ function render() {
     // Parse form values.
     const formData = new FormData(bongoForm);
 
-    // TODO: Load images here too (with cache).
+    // TODO: Load images/font here (with cache).
     let options = formData.get('options');
     if (options) {
         options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
@@ -218,7 +235,7 @@ function render() {
     const footerFormat = formData.get('footer');
     const pageSize = formData.get('pageSize');
 
-    // TODO: Should probably not be done on render but in some kind of validation function.
+    // TODO: Feedback should probably be done in some kind of validation function.
     optionCount.innerText = options.length;
 
     const pdf = new jsPDF({
@@ -355,21 +372,14 @@ function render() {
 
 // Event listeners
 bongoForm.addEventListener('change', () => render());
+bongoForm.addEventListener('submit', () => {
+    // Force refresh fallback seed so it stays the same unless the power of the bongo is wielded.
+    fallbackSeed = createRandomSeed();
+    render();
+});
 
 bongoForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    render();
-});
-
-overlayCheckbox.addEventListener('change', () => {
-    overlayEnabled = overlayCheckbox.checked;
-    render();
-});
-
-// TODO: On submit.
-bongoButton.addEventListener('click', () => {
-    // Force refresh fallback seed so it stays the same unless the power of the bongo is wielded.
-    fallbackSeed = createRandomSeed();
     render();
 });
 
@@ -381,8 +391,13 @@ freeSpotImageInput.addEventListener('change', async () => {
     freeSpotImage = await loadImage(freeSpotImageInput.files[0]);
     render();
 });
+fontSelect.addEventListener('change', async () => {
+    font = await loadFont(fontSelect.value);
+    render();
+});
 
-// We need font to be ready before we render (no DOMContentLoaded)
-window.addEventListener('load', () => {
+// Initial render.
+loadFont(fontSelect.value).then((loadedFont) => {
+    font = loadedFont;
     render();
 });
