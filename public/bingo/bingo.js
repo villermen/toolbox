@@ -18,7 +18,7 @@ let fallbackSeed = createRandomSeed();
 // TODO: This can hopefully be simplified.
 // TODO: Wait for load before initial render.
 let font = null;
-fetch('./CabinSketch-Regular.ttf').then((response) => {
+fetch('./CabinSketch-Bold.ttf').then((response) => {
     response.blob().then((blob) => {
         const fileReader = new FileReader();
         fileReader.readAsDataURL(blob);
@@ -155,47 +155,46 @@ function splitText(text, maxLines) {
     return lines;
 }
 
-/**
- *
- * @param {number|string} mm
- * @return {number}
- */
-function mmToPt(mm) {
-    return Number(mm) * 0.75;
-}
-
 function render() {
     // Parse form values.
     const formData = new FormData(bongoForm);
 
     // TODO: Load images here too (with cache).
-    const startX = mmToPt(formData.get('startX'));
-    const startY = mmToPt(formData.get('startY'));
-    const tileSize = mmToPt(formData.get('tileSize'));
-    const tileSpacing = mmToPt(formData.get('tileSpacing'));
     const options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
     const seed = (formData.get('seed') || fallbackSeed);
     const overlayEnabled = formData.get('overlayEnabled');
 
     optionCount.innerText = options.length;
 
-    const fontSize = (tileSize / 6);
-
     const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'pt', // Native unit of PDF
+        unit: 'pt', // Native unit of PDF.
         format: 'a4',
         compress: true,
     });
     pdf.addFileToVFS('bingo.ttf', font);
     pdf.addFont('bingo.ttf', 'bingo', 'Bold');
 
-    const width = pdf.internal.pageSize.getWidth();
-    const height = pdf.internal.pageSize.getHeight();
-    console.log(width, height);
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    const startX = Number(formData.get('startX')) / 100.0 * pageWidth;
+    const startY = Number(formData.get('startY')) / 100.0 * pageHeight;
+    // Note: Size and space use page width in both directions to stay square.
+    const tileSize = Number(formData.get('tileSize')) / 100.0 * pageWidth;
+    const tileSpacing = Number(formData.get('tileSpacing')) / 100.0 * pageWidth;
+
+    console.log({
+        pageWidth,
+        pageHeight,
+        startX,
+        startY,
+        tileSize,
+        tileSpacing,
+    });
 
     if (backgroundImage) {
-        pdf.addImage(backgroundImage, null, 0, 0, width, height, 'background');
+        pdf.addImage(backgroundImage, null, 0, 0, pageWidth, pageHeight, 'background');
     }
 
     // Debug information.
@@ -208,7 +207,7 @@ function render() {
 
         /** @param {string} message */
         function drawDebugMessage(message) {
-            pdf.text(message, width - 10, debugTextY, {
+            pdf.text(message, pageWidth - 10, debugTextY, {
                 baseline: 'top',
                 align: 'right',
             });
@@ -234,8 +233,9 @@ function render() {
     }
 
     // Draw tiles.
+    const fontSize = (tileSize / 6);
     pdf.setFont('bingo', 'Bold');
-    pdf.setFontSize(fontSize * 0.75);
+    pdf.setFontSize(fontSize);
     pdf.setTextColor(0, 0, 0);
 
     for (let tileId = 0; tileId < 25; tileId++) {
@@ -262,10 +262,9 @@ function render() {
             let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
             lines.forEach((line) => {
                 pdf.text(line, tileX + (tileSize / 2), lineY, {
-                    maxWidth: tileSize,
+                    // maxWidth: tileSize, Option is out there, but we've already taken (better) manual control.
                     align: 'center',
                     baseline: 'middle',
-
                 });
                 lineY += fontSize;
             });
