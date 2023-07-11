@@ -215,8 +215,8 @@ function render() {
     
     const seeds = parseSeedValue(formData.get('seed'));
     const overlayEnabled = formData.get('overlayEnabled');
-
-    const pageFormat = 'a4';
+    const footerFormat = formData.get('footer');
+    const pageSize = formData.get('pageSize');
 
     // TODO: Should probably not be done on render but in some kind of validation function.
     optionCount.innerText = options.length;
@@ -224,7 +224,7 @@ function render() {
     const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'pt', // Native unit of PDF.
-        format: pageFormat,
+        format: pageSize,
         compress: true,
     });
     pdf.addFileToVFS('bingo.ttf', font);
@@ -241,7 +241,7 @@ function render() {
 
     seeds.forEach((seed, i) => {
         if (i > 0) {
-            pdf.addPage(pageFormat, 'portrait');
+            pdf.addPage(pageSize, 'portrait');
         }
 
         if (backgroundImage) {
@@ -251,8 +251,8 @@ function render() {
         // Debug information.
         if (overlayEnabled) {
             pdf.setFont('Helvetica', '');
-            pdf.setFontSize(15);
-            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(10);
+            pdf.setTextColor(255, 0, 0);
     
             let debugTextY = 10;
     
@@ -264,7 +264,7 @@ function render() {
                         align: 'right',
                     });
                 }
-                debugTextY += 20;
+                debugTextY += 13;
             }
     
             drawDebugLine(`Seed: ${seed}`);
@@ -325,6 +325,23 @@ function render() {
                     lineY += fontSize;
                 });
             }
+        }
+
+        // Footer
+        if (footerFormat) {
+            const footer = footerFormat.replace('{seed}', seed).replace('{page}', i + 1);
+
+            // https://stackoverflow.com/a/67185656/1871016
+            pdf.saveGraphicsState();
+            pdf.setFont('Helvetica', '');
+            pdf.setFontSize(10);
+            pdf.setTextColor(0, 0, 0);
+            pdf.setGState(new pdf.GState({opacity: 0.1}));
+            pdf.text(footer, 5, pageHeight - 5, {
+                baseline: 'bottom',
+                align: 'left',
+            });
+            pdf.restoreGraphicsState();
         }
     });
 

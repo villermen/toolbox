@@ -24,11 +24,22 @@
                             <label class="form-label" for="freeSpotImageInput">Free spot</label>
                             <input class="form-control" type="file" id="freeSpotImageInput" accept="image/*">
                         </div>
-                        <div class="form-group mb-2">
-                            <label class="form-label" for="fontSelect">Font</label>
-                            <select class="form-control" id="fontSelect">
-                                <option value="Cabin Sketch Bold">Cabin Sketch Bold</option>
-                            </select>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="pageSizeSelect">Page size</label>
+                            <div class="col-8">
+                                <select class="form-control" name="pageSize" id="pageSizeSelect">
+                                    <option value="a4">A4</option>
+                                    <option value="a5">A5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <label class="col-form-label col-4" for="fontSelect">Font</label>
+                            <div class="col-8">
+                                <select class="form-control" name="font" id="fontSelect">
+                                    <option value="Cabin Sketch Bold">Cabin Sketch Bold</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="row mb-2">
                             <label class="col-form-label col-4" for="startXInput">Horizontal offset</label>
@@ -99,9 +110,9 @@
                             </div>
                         </div>
                         <div class="row mb-2">
-                            <label class="col-form-label col-4" for="footerInput">Footer (TODO)</label>
+                            <label class="col-form-label col-4" for="footerInput">Footer</label>
                             <div class="col-8">
-                                <input class="form-control" type="text" name="footer" id="footerInput" value="B01-{seed}" />
+                                <input class="form-control" type="text" name="footer" id="footerInput" value="B01-{page}-{seed}" />
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100" id="bongoButton">Bongo!</button>
