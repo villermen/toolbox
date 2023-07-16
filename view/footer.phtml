@@ -1,0 +1,35 @@
+<?php
+/**
+ * @var \Villermen\Toolbox\App $this
+ * @var bool|null $toolboxButton
+ * @var string|null $content
+ */
+$toolboxButton = ($toolboxButton ?? true);
+$content = ($content ?? null);
+
+$profile = $this->getAuthenticatedProfile();
+?>
+            <hr />
+            <div class="row">
+                <div class="col-4">
+                    <?php if ($toolboxButton): ?>
+                        <a href="<?= $this->createPath('/'); ?>" class="btn btn-primary float-start">Toolbox</a>
+                    <?php endif; ?>
+                </div>
+                <div class="col-4 text-center">
+                    <?php if ($content): ?>
+                        <?= $content; ?>
+                    <?php endif; ?>
+                </div>
+                <div class="col-4 text-end">
+                    <?php if ($profile): ?>
+                        <a href="<?= $this->createUrl('auth.php', [
+                            'logout' => '1',
+                            'redirect' => $this->createPath('/'),
+                        ]); ?>" class="btn btn-link">Log out</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

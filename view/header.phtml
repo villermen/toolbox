@@ -1,0 +1,51 @@
+<?php
+/**
+ * @var \Villermen\Toolbox\App $this
+ * @var string|null $title
+ * @var string|null $subtitle
+ * @var string|null $head
+ * @var string|null $script
+ */
+$title = ($title ?? null);
+$subtitle = ($subtitle ?? null);
+$head = ($head ?? null);
+$script = ($script ?? null);
+
+$profile = $this->getAuthenticatedProfile();
+?>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title><?= $title !== 'Toolbox' ? sprintf('%s - ', $title) : ''; ?>Toolbox</title>
+        <link rel="stylesheet" href="<?= $this->createPath('style.css'); ?>" />
+        <link rel="icon" href="<?= $this->createPath('toolbox-square.png'); ?>" />
+        <?php if ($head): ?>
+            <?= $head; ?>
+        <?php endif; ?>
+        <?php if ($script): ?>
+            <script src="<?= $script; ?>" defer></script>
+        <?php endif; ?>
+    </head>
+    <body>
+        <div class="container mt-5 mb-5">
+            <?php foreach($this->popFlashMessages() as $flashMessage): ?>
+                <div class="<?= sprintf('alert alert-dismissible alert-%s fade show', $flashMessage['color']); ?>">
+                    <?= htmlspecialchars($flashMessage['message']); ?>
+                    <button type="button" class="btn btn-sm btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                </div>
+            <?php endforeach; ?>
+            <div class="clearfix">
+                <?php if ($profile): ?>
+                    <img
+                            class="border border-dark rounded-circle float-end align-middle"
+                            style="height: 42px;"
+                            src="<?= htmlspecialchars($profile->getAvatar()); ?>"
+                            alt="<?= htmlspecialchars($profile->getName()); ?>"
+                    />
+                <?php endif; ?>
+                <h1 class="d-inline-block me-3 mb-0"><?= $title; ?></h1>
+                <div class="lead d-inline-block"><?= $subtitle; ?></div>
+            </div>
+            <hr />

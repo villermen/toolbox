@@ -77,4 +77,12 @@ class App
         $this->session->set('flashMessages', null);
         return $flashMessages;
     }
+
+    public function renderView(string $template, array $parameters = []): string
+    {
+        extract($parameters);
+        ob_start();
+        require(sprintf('view/%s', $template));
+        return ob_get_clean();
+    }
 }
