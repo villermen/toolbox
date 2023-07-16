@@ -1,11 +1,13 @@
 <?php
 /**
  * @var \Villermen\Toolbox\App $this
+ * @var string|null $icon
  * @var string|null $title
  * @var string|null $subtitle
  * @var string|null $head
  * @var string|null $script
  */
+$icon = ($icon ?? null);
 $title = ($title ?? null);
 $subtitle = ($subtitle ?? null);
 $head = ($head ?? null);
@@ -45,7 +47,12 @@ $profile = $this->getAuthenticatedProfile();
                             alt="<?= htmlspecialchars($profile->getName()); ?>"
                     />
                 <?php endif; ?>
-                <h1 class="d-inline-block me-3 mb-0"><?= $title; ?></h1>
+                <h1 class="d-inline-block me-3 mb-0">
+                    <?php if ($icon): ?>
+                        <img src="<?= $icon; ?>" alt="" class="align-baseline" style="height: 27px;" />
+                    <?php endif; ?>
+                    <?= $title; ?>
+                </h1>
                 <div class="lead d-inline-block"><?= $subtitle; ?></div>
             </div>
             <hr />

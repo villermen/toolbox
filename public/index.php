@@ -5,7 +5,8 @@ require_once('../vendor/autoload.php');
 $app = new \Villermen\Toolbox\App();
 ?>
 <?= $app->renderView('header.phtml', [
-    'title' => '<img src="./toolbox.png" alt="Toolbox logo" class="align-baseline" style="height: 27px;" /> Toolbox',
+    'icon' => $app->createPath('toolbox.png'),
+    'title' => 'Toolbox',
 ]); ?>
 <div class="text-center">
     <p class="lead">An assortment of snappy tools you didn't know you needed. You probably still don't!</p>
