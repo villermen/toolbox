@@ -117,8 +117,12 @@ $app = new \Villermen\Toolbox\App();
     </div>
     <div class="col-md-6">
         <h3>Preview</h3>
-        <div style="min-height: 500px; height: calc(100% - 41px);">
-            <embed id="previewEmbed" type="application/pdf" style="width:100%; height: 100%;" />
+        <div class="text-center" style="min-height: 500px; height: calc(100% - 41px);">
+            <div id="loadingIndicator" class="d-flex align-items-center justify-content-center gap-2">
+                <div id="loadingIndicator" class="spinner-border" role="status"></div>
+                Loading...
+            </div>
+            <embed id="previewEmbed" type="application/pdf" class="d-none" style="width:100%; height: 100%;" />
         </div>
     </div>
 </div>

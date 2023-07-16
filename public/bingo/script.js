@@ -7,6 +7,7 @@ const optionCount = document.getElementById('optionCount');
 const backgroundImageInput = document.getElementById('backgroundImageInput');
 const freeSpotImageInput = document.getElementById('freeSpotImageInput');
 const fontSelect = document.getElementById('fontSelect');
+const loadingIndicator = document.getElementById('loadingIndicator');
 const previewEmbed = document.getElementById('previewEmbed');
 
 /** @type {HTMLImageElement|null} */
@@ -24,6 +25,10 @@ for (let i = 1; i <= 24; i++) {
 }
 optionsInput.placeholder = placeholderOptions.join('\n');
 
+/** @type {number|null} */
+let renderTimeoutId = null;
+/** @type {string|null} */
+let pdfObjectUrl = null;
 
 /**
  * @param {File} file
@@ -219,6 +224,9 @@ function splitText(text, maxLines) {
 }
 
 function render() {
+    previewEmbed.classList.add('d-none');
+    loadingIndicator.classList.remove('d-none');
+
     // Parse form values.
     const formData = new FormData(bongoForm);
 
@@ -229,171 +237,180 @@ function render() {
     } else {
         options = placeholderOptions;
     }
-    
+
     const seeds = parseSeedValue(formData.get('seed'));
     const overlayEnabled = formData.get('overlayEnabled');
     const footerFormat = formData.get('footer');
     const pageSize = formData.get('pageSize');
 
-    // TODO: Feedback should probably be done in some kind of validation function.
     optionCount.innerText = options.length;
 
-    const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'pt', // Native unit of PDF.
-        format: pageSize,
-        compress: true,
-    });
-    pdf.addFileToVFS('bingo.ttf', font);
-    pdf.addFont('bingo.ttf', 'bingo', '');
+    // ID is not cleared because we reuse it.
+    if (renderTimeoutId) {
+        window.clearTimeout(renderTimeoutId);
+    }
+    if (pdfObjectUrl) {
+        window.URL.revokeObjectURL(pdfObjectUrl);
+    }
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    
-    const startX = Number(formData.get('startX')) / 100.0 * pageWidth;
-    const startY = Number(formData.get('startY')) / 100.0 * pageHeight;
-    // Note: Size and space use page width in both directions to stay square.
-    const tileSize = Number(formData.get('tileSize')) / 100.0 * pageWidth;
-    const tileSpacing = Number(formData.get('tileSpacing')) / 100.0 * pageWidth;
+    // Rendering happens in timeout to update loading state before hanging.
+    renderTimeoutId = window.setTimeout(() => {
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'pt', // Native unit of PDF.
+            format: pageSize,
+            compress: true,
+        });
+        pdf.addFileToVFS('bingo.ttf', font);
+        pdf.addFont('bingo.ttf', 'bingo', '');
 
-    seeds.forEach((seed, i) => {
-        if (i > 0) {
-            pdf.addPage(pageSize, 'portrait');
-        }
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
 
-        if (backgroundImage) {
-            pdf.addImage(backgroundImage, null, 0, 0, pageWidth, pageHeight, 'background');
-        }
-    
-        // Debug information.
-        if (overlayEnabled) {
-            pdf.setFont('Helvetica', '');
-            pdf.setFontSize(10);
-            pdf.setTextColor(255, 0, 0);
-    
-            let debugTextY = 10;
-    
-            /** @param {string|null} [message=null] */
-            function drawDebugLine(message = null) {
-                if (message) {
-                    pdf.text(message, pageWidth - 10, debugTextY, {
-                        baseline: 'top',
-                        align: 'right',
-                    });
-                }
-                debugTextY += 13;
+        const startX = Number(formData.get('startX')) / 100.0 * pageWidth;
+        const startY = Number(formData.get('startY')) / 100.0 * pageHeight;
+        // Note: Size and space use page width in both directions to stay square.
+        const tileSize = Number(formData.get('tileSize')) / 100.0 * pageWidth;
+        const tileSpacing = Number(formData.get('tileSpacing')) / 100.0 * pageWidth;
+
+        seeds.forEach((seed, i) => {
+            if (i > 0) {
+                pdf.addPage(pageSize, 'portrait');
             }
-    
-            drawDebugLine(`Seed: ${seed}`);
-            if (!backgroundImage) {
-                drawDebugLine('No background image!');
+
+            if (backgroundImage) {
+                pdf.addImage(backgroundImage, null, 0, 0, pageWidth, pageHeight, 'background');
             }
-            if (options.length < 24) {
-                drawDebugLine(`Not enough options (${options.length}/24)!`);
-            }
-            drawDebugLine('');
-            drawDebugLine(`Page size: ${pageWidth}x${pageHeight}pt`);
-            drawDebugLine(`Tile offset: ${startX}x${startY}pt`);
-            drawDebugLine(`Tile size+spacing: ${tileSize}+${tileSpacing}pt`);
-        }
-    
-        // Shuffle and limit options.
-        const random = createRandom(seed);
-        let remainingOptions = [...options];
-        const shuffledOptions = [];
-        while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
-            shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
-        }
-    
-        // Draw tiles.
-        const fontSize = (tileSize / 6);
-        pdf.setFont('bingo', '');
-        pdf.setFontSize(fontSize);
-        pdf.setTextColor(0, 0, 0);
-    
-        for (let tileId = 0; tileId < 25; tileId++) {
-            const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
-            const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
-    
-            if (tileId === 12) {
-                // Draw free spot image.
-                if (freeSpotImage) {
-                    pdf.addImage(freeSpotImage, null, tileX, tileY, tileSize, tileSize, 'free_spot');
-                }
-                continue;
-            }
-    
+
+            // Debug information.
             if (overlayEnabled) {
-                pdf.setDrawColor(0, 255, 0);
-                pdf.setLineWidth(0.75); // 1px
-                pdf.rect(tileX, tileY, tileSize, tileSize);
-            }
-    
-            const optionIndex = (tileId < 12 ? tileId : tileId -1);
-            if (optionIndex < shuffledOptions.length) {
-                const lines = splitText(shuffledOptions[optionIndex], 6);
-                let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
-                lines.forEach((line) => {
-                    pdf.text(line, tileX + (tileSize / 2), lineY, {
-                        // maxWidth: tileSize, Option is out there, but we've already taken (better) manual control.
-                        align: 'center',
-                        baseline: 'middle',
-                    });
-                    lineY += fontSize;
-                });
-            }
-        }
+                pdf.setFont('Helvetica', '');
+                pdf.setFontSize(10);
+                pdf.setTextColor(255, 0, 0);
 
-        // Footer
-        if (footerFormat) {
-            const footer = footerFormat.replace('{seed}', seed).replace('{page}', i + 1);
+                let debugTextY = 10;
 
-            // https://stackoverflow.com/a/67185656/1871016
-            pdf.saveGraphicsState();
-            pdf.setFont('Helvetica', '');
-            pdf.setFontSize(10);
+                /** @param {string|null} [message=null] */
+                function drawDebugLine(message = null) {
+                    if (message) {
+                        pdf.text(message, pageWidth - 10, debugTextY, {
+                            baseline: 'top',
+                            align: 'right',
+                        });
+                    }
+                    debugTextY += 13;
+                }
+
+                drawDebugLine(`Seed: ${seed}`);
+                if (!backgroundImage) {
+                    drawDebugLine('No background image!');
+                } else {
+                    const idealHeight =  Math.round(backgroundImage.width * Math.sqrt(2));
+                    if (Math.abs(backgroundImage.height - idealHeight) > 1) {
+                        drawDebugLine(`Stretching background (${backgroundImage.width}x${backgroundImage.height}). Ideal height: ${idealHeight}px.`)
+                    }
+                }
+                if (options.length < 24) {
+                    drawDebugLine(`Not enough options (${options.length}/24)!`);
+                }
+                drawDebugLine('');
+                drawDebugLine(`Page size: ${pageWidth}x${pageHeight}pt`);
+                drawDebugLine(`Tile offset: ${startX}x${startY}pt`);
+                drawDebugLine(`Tile size+spacing: ${tileSize}+${tileSpacing}pt`);
+            }
+
+            // Shuffle and limit options.
+            const random = createRandom(seed);
+            let remainingOptions = [...options];
+            const shuffledOptions = [];
+            while (remainingOptions.length > 0 && shuffledOptions.length < 24) {
+                shuffledOptions.push(remainingOptions.splice(Math.floor(random() * remainingOptions.length), 1)[0]);
+            }
+
+            // Draw tiles.
+            const fontSize = (tileSize / 6);
+            pdf.setFont('bingo', '');
+            pdf.setFontSize(fontSize);
             pdf.setTextColor(0, 0, 0);
-            pdf.setGState(new pdf.GState({opacity: 0.1}));
-            pdf.text(footer, 5, pageHeight - 5, {
-                baseline: 'bottom',
-                align: 'left',
-            });
-            pdf.restoreGraphicsState();
-        }
-    });
 
-    const pdfData = pdf.output('datauristring', {
-        filename: 'bingo-preview.pdf',
-    });
-    previewEmbed.src = pdfData;
+            for (let tileId = 0; tileId < 25; tileId++) {
+                const tileX = startX + ((tileSize + tileSpacing) * (tileId % 5));
+                const tileY = startY + ((tileSize + tileSpacing) * Math.floor(tileId / 5));
 
-    // pdf.save('bongo.pdf');
+                if (tileId === 12) {
+                    // Draw free spot image.
+                    if (freeSpotImage) {
+                        pdf.addImage(freeSpotImage, null, tileX, tileY, tileSize, tileSize, 'free_spot');
+                    }
+                    continue;
+                }
+
+                if (overlayEnabled) {
+                    pdf.setDrawColor(0, 255, 0);
+                    pdf.setLineWidth(0.75); // 1px
+                    pdf.rect(tileX, tileY, tileSize, tileSize);
+                }
+
+                const optionIndex = (tileId < 12 ? tileId : tileId -1);
+                if (optionIndex < shuffledOptions.length) {
+                    const lines = splitText(shuffledOptions[optionIndex], 6);
+                    let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
+                    lines.forEach((line) => {
+                        pdf.text(line, tileX + (tileSize / 2), lineY, {
+                            // maxWidth: tileSize, Option is out there, but we've already taken (better) manual control.
+                            align: 'center',
+                            baseline: 'middle',
+                        });
+                        lineY += fontSize;
+                    });
+                }
+            }
+
+            // Footer
+            if (footerFormat) {
+                const footer = footerFormat.replace('{seed}', seed).replace('{page}', i + 1);
+
+                // https://stackoverflow.com/a/67185656/1871016
+                pdf.saveGraphicsState();
+                pdf.setFont('Helvetica', '');
+                pdf.setFontSize(10);
+                pdf.setTextColor(0, 0, 0);
+                pdf.setGState(new pdf.GState({opacity: 0.1}));
+                pdf.text(footer, 5, pageHeight - 5, {
+                    baseline: 'bottom',
+                    align: 'left',
+                });
+                pdf.restoreGraphicsState();
+            }
+        }, 0);
+
+        const pdfData = pdf.output('blob');
+
+        pdfObjectUrl = window.URL.createObjectURL(pdfData);
+        previewEmbed.src = pdfObjectUrl;
+
+        loadingIndicator.classList.add('d-none');
+        previewEmbed.classList.remove('d-none');
+    }, 0);
 }
 
 // Event listeners
-bongoForm.addEventListener('change', () => render());
-bongoForm.addEventListener('submit', () => {
+bongoForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+
     // Force refresh fallback seed so it stays the same unless the power of the bongo is wielded.
     fallbackSeed = createRandomSeed();
     render();
 });
 
-bongoForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    render();
-});
-
 backgroundImageInput.addEventListener('change', async () => {
     backgroundImage = await loadImage(backgroundImageInput.files[0]);
-    render();
 });
 freeSpotImageInput.addEventListener('change', async () => {
     freeSpotImage = await loadImage(freeSpotImageInput.files[0]);
-    render();
 });
 fontSelect.addEventListener('change', async () => {
     font = await loadFont(fontSelect.value);
-    render();
 });
 
 // Initial render.
