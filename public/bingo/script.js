@@ -29,30 +29,28 @@ optionsInput.placeholder = placeholderOptions.join('\n');
 let renderTimeoutId = null;
 /** @type {string|null} */
 let pdfObjectUrl = null;
+/** @type {Date|null} */
+let lastDebugMessage = null;
 
 /**
  * @param {File} file
  * @returns {Promise<HTMLImageElement>}
  */
 function loadImage(file) {
-    const fileReader = new FileReader();
-    fileReader.readAsDataURL(file);
-
     return new Promise((resolve, reject) => {
-        fileReader.addEventListener('load', () => {
-            const image = document.createElement('img');
-            image.src = fileReader.result;
-            image.addEventListener('load', () => {
-                resolve(image);
-            });
-            image.addEventListener('error', () => {
-                reject('Could not load image!');
-            });
-        })
-        fileReader.addEventListener('error', () => {
-            reject('Could not read file!');
-        });
+        debug(`Loading image "${file.name}"...`);
+        const imageUrl = window.URL.createObjectURL(file)
+        const image = new Image();
+        image.onload = () => {
+            resolve(image);
+            debug('Image loaded.');
+        };
+        image.src = imageUrl;
     });
+}
+
+function unloadImage(image) {
+    window.URL.revokeObjectURL(image.src);
 }
 
 /**
@@ -132,6 +130,20 @@ function createRandomSeed() {
     }
 
     return seed;
+}
+
+
+/**
+ * @param {string} message
+ */
+function debug(message) {
+    const currentTime = new Date();
+    if (lastDebugMessage) {
+        message += ` (+${currentTime - lastDebugMessage}ms)`;
+    }
+
+    console.debug(message);
+    lastDebugMessage = currentTime;
 }
 
 /**
@@ -223,14 +235,14 @@ function splitText(text, maxLines) {
     return lines;
 }
 
-function render() {
+async function render() {
+    debug('Render start');
     previewEmbed.classList.add('d-none');
     loadingIndicator.classList.remove('d-none');
 
     // Parse form values.
     const formData = new FormData(bongoForm);
 
-    // TODO: Load images/font here (with cache).
     let options = formData.get('options');
     if (options) {
         options = formData.get('options').split(/\n/).filter((line) => line.trim().length > 0);
@@ -260,6 +272,7 @@ function render() {
             unit: 'pt', // Native unit of PDF.
             format: pageSize,
             compress: true,
+
         });
         pdf.addFileToVFS('bingo.ttf', font);
         pdf.addFont('bingo.ttf', 'bingo', '');
@@ -274,16 +287,21 @@ function render() {
         const tileSpacing = Number(formData.get('tileSpacing')) / 100.0 * pageWidth;
 
         seeds.forEach((seed, i) => {
+            debug(`Page ${i + 1}`);
+
             if (i > 0) {
                 pdf.addPage(pageSize, 'portrait');
             }
 
             if (backgroundImage) {
-                pdf.addImage(backgroundImage, null, 0, 0, pageWidth, pageHeight, 'background');
+                debug('Adding background...');
+                pdf.addImage(backgroundImage, null, 0, 0, pageWidth, pageHeight, 'background', 'FAST');
+                debug('Background added.');
             }
 
             // Debug information.
             if (overlayEnabled) {
+                debug('Drawing debug overlay...');
                 pdf.setFont('Helvetica', '');
                 pdf.setFontSize(10);
                 pdf.setTextColor(255, 0, 0);
@@ -305,7 +323,7 @@ function render() {
                 if (!backgroundImage) {
                     drawDebugLine('No background image!');
                 } else {
-                    const idealHeight =  Math.round(backgroundImage.width * Math.sqrt(2));
+                    const idealHeight = Math.round(backgroundImage.width * Math.sqrt(2));
                     if (Math.abs(backgroundImage.height - idealHeight) > 1) {
                         drawDebugLine(`Stretching background (${backgroundImage.width}x${backgroundImage.height}). Ideal height: ${idealHeight}px.`)
                     }
@@ -317,6 +335,7 @@ function render() {
                 drawDebugLine(`Page size: ${pageWidth}x${pageHeight}pt`);
                 drawDebugLine(`Tile offset: ${startX}x${startY}pt`);
                 drawDebugLine(`Tile size+spacing: ${tileSize}+${tileSpacing}pt`);
+                debug('Done drawing debug overlay.');
             }
 
             // Shuffle and limit options.
@@ -340,7 +359,7 @@ function render() {
                 if (tileId === 12) {
                     // Draw free spot image.
                     if (freeSpotImage) {
-                        pdf.addImage(freeSpotImage, null, tileX, tileY, tileSize, tileSize, 'free_spot');
+                        pdf.addImage(freeSpotImage, null, tileX, tileY, tileSize, tileSize, 'free_spot', 'FAST');
                     }
                     continue;
                 }
@@ -351,7 +370,7 @@ function render() {
                     pdf.rect(tileX, tileY, tileSize, tileSize);
                 }
 
-                const optionIndex = (tileId < 12 ? tileId : tileId -1);
+                const optionIndex = (tileId < 12 ? tileId : tileId - 1);
                 if (optionIndex < shuffledOptions.length) {
                     const lines = splitText(shuffledOptions[optionIndex], 6);
                     let lineY = (tileY + (tileSize / 2)) - ((lines.length - 1) / 2) * fontSize;
@@ -382,16 +401,17 @@ function render() {
                 });
                 pdf.restoreGraphicsState();
             }
-        }, 0);
+        });
 
+        debug('Saving PDF...');
         const pdfData = pdf.output('blob');
-
         pdfObjectUrl = window.URL.createObjectURL(pdfData);
         previewEmbed.src = pdfObjectUrl;
+        debug('PDF saved.');
 
         loadingIndicator.classList.add('d-none');
         previewEmbed.classList.remove('d-none');
-    }, 0);
+    });
 }
 
 // Event listeners
@@ -404,13 +424,24 @@ bongoForm.addEventListener('submit', (event) => {
 });
 
 backgroundImageInput.addEventListener('change', async () => {
+    if (backgroundImage) {
+        unloadImage(backgroundImage);
+    }
+
     backgroundImage = await loadImage(backgroundImageInput.files[0]);
+    render();
 });
 freeSpotImageInput.addEventListener('change', async () => {
+    if (freeSpotImage) {
+        unloadImage(freeSpotImage);
+    }
+
     freeSpotImage = await loadImage(freeSpotImageInput.files[0]);
+    render();
 });
 fontSelect.addEventListener('change', async () => {
     font = await loadFont(fontSelect.value);
+    render();
 });
 
 // Initial render.

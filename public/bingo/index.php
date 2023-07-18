@@ -14,7 +14,7 @@ $app = new \Villermen\Toolbox\App();
         <h3>Options</h3>
         <form id="bongoForm">
             <div class="form-group mb-2">
-                <label class="form-label" for="backgroundImageInput">Background (A-paper ratio, 1x1.4142)</label>
+                <label class="form-label" for="backgroundImageInput">Background (1x1.4142, JPEG = fastest)</label>
                 <input class="form-control" type="file" id="backgroundImageInput" accept="image/*">
             </div>
             <div class="form-group mb-2">
@@ -120,7 +120,7 @@ $app = new \Villermen\Toolbox\App();
         <div class="text-center" style="min-height: 500px; height: calc(100% - 41px);">
             <div id="loadingIndicator" class="d-flex align-items-center justify-content-center gap-2">
                 <div id="loadingIndicator" class="spinner-border" role="status"></div>
-                Loading...
+                Rendering...
             </div>
             <embed id="previewEmbed" type="application/pdf" class="d-none" style="width:100%; height: 100%;" />
         </div>
