@@ -161,6 +161,11 @@ if ($profile) {
                 <a class="btn btn-primary btn-sm d-block d-sm-inline-block w-100" href="<?= $app->createUrl('work/form.php', [
                     'action' => 'checkin',
                 ]); ?>"><?= sprintf('Check %s now', $currentWorkday->isComplete() ? 'in' : 'out'); ?></a>
+                <?php if ($profile->getWorkSettings()->isAutoBreakEnabled() && !$currentWorkday->isComplete()): ?>
+                    <a class="btn btn-primary btn-sm d-block d-sm-inline-block w-100 mt-1" href="<?= $app->createUrl('work/form.php', [
+                        'action' => 'checkinNoBreak',
+                    ]); ?>">Check out without break</a>
+                <?php endif; ?>
             </div>
             <label for="autoBreakEnabled" class="col-4 col-sm-3 form-label">Auto break</label>
             <div class="col-8 col-sm-5">

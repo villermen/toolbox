@@ -20,11 +20,11 @@ $end = (\DateTimeImmutable::createFromFormat('Ymd H:i', sprintf('%s %s', $date, 
 $date = \DateTimeImmutable::createFromFormat('Ymd', $date, $profile->getTimezone());
 $rangeType = \Villermen\Toolbox\Work\WorkrangeType::tryFrom((int)$_GET['type']) ?? \Villermen\Toolbox\Work\WorkrangeType::WORK;
 
-if ($action === 'checkin' || ($action === 'addRange' && !$start && $end)) {
+if (in_array($action, ['checkin', 'checkinNoBreak']) || ($action === 'addRange' && !$start && $end)) {
     $now = ($end ?? new \DateTimeImmutable('now', $profile->getTimezone()));
 
     try {
-        $workday = $app->addCheckin($profile, $now);
+        $workday = $app->addCheckin($profile, $now, $action !== 'checkinNoBreak');
         $app->addFlashMessage('success', sprintf('You were checked %s.', ($workday->isComplete() ? 'out' : 'in')));
     } catch (\InvalidArgumentException $exception) {
         $app->addFlashMessage('danger', $exception->getMessage());

@@ -15,7 +15,7 @@ class CheckinService
      */
     private const MISSED_CHECKOUT_THRESHOLD = 6 * 3600;
 
-    public function addCheckin(Profile $profile, \DateTimeInterface $time): Workday
+    public function addCheckin(Profile $profile, \DateTimeInterface $time, bool $allowAutoBreak = true): Workday
     {
         $workSettings = $profile->getWorkSettings();
 
@@ -65,7 +65,7 @@ class CheckinService
             );
 
             // Auto break.
-            if ($workSettings->isAutoBreakEnabled()) {
+            if ($workSettings->isAutoBreakEnabled() && $allowAutoBreak) {
                 $breakStart = $workSettings->getAutoBreakStart($time);
                 $breakEnd = $workSettings->getAutoBreakEnd($time);
                 if ($incompleteRange->getStart() < $breakStart && $time > $breakEnd) {

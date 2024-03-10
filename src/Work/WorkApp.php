@@ -17,9 +17,9 @@ class WorkApp extends App
         $this->checkinService = new CheckinService();
     }
 
-    public function addCheckin(Profile $profile, \DateTimeInterface $time): Workday
+    public function addCheckin(Profile $profile, \DateTimeInterface $time, bool $allowAutoBreak = true): Workday
     {
-        $workday = $this->checkinService->addCheckin($profile, $time);
+        $workday = $this->checkinService->addCheckin($profile, $time, $allowAutoBreak);
         $this->saveProfile($profile);
         return $workday;
     }
