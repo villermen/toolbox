@@ -121,7 +121,7 @@ if ($profile) {
     while (true) {
         $month = (int)$day->format('Ym');
         if (!isset($months[$month])) {
-            if (count($months) === 3) {
+            if (count($months) === 2) {
                 break;
             }
 
