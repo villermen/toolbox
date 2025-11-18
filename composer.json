@@ -8,12 +8,24 @@
     },
     "require": {
         "php": ">=8.2",
-        "league/oauth2-client": "^2.6",
-        "symfony/yaml": "^6.2",
+        "league/oauth2-client": "^2.8",
         "league/oauth2-google": "^4.0",
-        "webmozart/assert": "^1.11"
+        "symfony/yaml": "^7.3",
+        "webmozart/assert": "^1.12"
     },
     "require-dev": {
-        "symfony/var-dumper": "^6.2"
+        "symfony/var-dumper": "^7.3"
+    },
+    "config": {
+        "platform": {
+            "php": "8.2"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "dev-server": [
+            "Composer\\Config::disableProcessTimeout",
+            "php -S localhost:8080 -t public"
+        ]
     }
 }
