@@ -34,8 +34,8 @@ $createBarRanges = function (\Villermen\Toolbox\Work\Workday $workday) use ($pro
     $x = 0;
     $barRanges = [];
     foreach ($workday->getRanges() as $range) {
-        // Skip invisible ranges.
-        if (($range->getEnd() ?? $range->getStart()) < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
+        // Skip fully-invisible ranges.
+        if (($range->getEnd() ?? $range->getStart()) <= $visibleDayStart || $range->getStart() >= $visibleDayEnd) {
             continue;
         }
 
@@ -55,7 +55,7 @@ $createBarRanges = function (\Villermen\Toolbox\Work\Workday $workday) use ($pro
         $visibleEnd = min($visibleEnd, $visibleDayEnd);
 
         $marginLeft = ($visibleStart->getTimestamp() - $visibleDayStart->getTimestamp()) / $visibleDaySeconds * 100.0 - $x;
-        $width = ($visibleEnd->getTimestamp() - $range->getStart()->getTimestamp()) / $visibleDaySeconds * 100.0;
+        $width = ($visibleEnd->getTimestamp() - $visibleStart->getTimestamp()) / $visibleDaySeconds * 100.0;
 
         if ($range->getType() === \Villermen\Toolbox\Work\WorkrangeType::WORK) {
             $startFormatted = ($visibleStart === $range->getStart() ? $range->getStart()->format('H:i') : '~');
@@ -93,24 +93,28 @@ $createBarRanges = function (\Villermen\Toolbox\Work\Workday $workday) use ($pro
 
     return $barRanges;
 };
-$getInvisibleRanges = function (\Villermen\Toolbox\Work\Workday $workday): array {
+$getObscuredRanges = function (\Villermen\Toolbox\Work\Workday $workday): array {
+    // Leniency to include nearly-invisible ranges.
+    $leniency = new \DateInterval('PT15M');
     $visibleDayStart = \DateTime::createFromInterface($workday->getDate());
-    $visibleDayStart->setTime(7, 0);
+    $visibleDayStart->setTime(7, 0)->add($leniency);
     $visibleDayEnd = \DateTime::createFromInterface($workday->getDate());
-    $visibleDayEnd->setTime(20, 0);
+    $visibleDayEnd->setTime(20, 0)->sub($leniency);
 
-    $invisibleRanges = [];
+    $obscuredRanges = [];
     foreach ($workday->getRanges() as $range) {
-        // Only include invisible ranges.
-        if (($range->getEnd() ?? $range->getStart()) < $visibleDayStart || $range->getStart() > $visibleDayEnd) {
-            $invisibleRanges[] = [
-                'startFormatted' => $range->getStart()->format('H:i'),
-                'endFormatted' => ($range->getEnd() ? $range->getEnd()->format('H:i') : '???'),
-            ];
+        // Skip mostly-visible ranges.
+        if (($range->getEnd() ?? $range->getStart()) >= $visibleDayStart && $range->getStart() <= $visibleDayEnd) {
+            continue;
         }
+
+        $obscuredRanges[] = [
+            'startFormatted' => $range->getStart()->format('H:i'),
+            'endFormatted' => ($range->getEnd() ? $range->getEnd()->format('H:i') : '???'),
+        ];
     }
 
-    return $invisibleRanges;
+    return $obscuredRanges;
 };
 
 if ($profile) {
@@ -414,10 +418,10 @@ if ($profile) {
             </div>
             <div class="mb-2">
                 <div class="text-muted">
-                    <?php $invisibleRanges = $getInvisibleRanges($workday); ?>
-                    <?php if ($invisibleRanges): ?>
-                        Not shown:
-                        <?php foreach ($invisibleRanges as $range): ?>
+                    <?php $obscuredRanges = $getObscuredRanges($workday); ?>
+                    <?php if ($obscuredRanges): ?>
+                        OB:
+                        <?php foreach ($obscuredRanges as $range): ?>
                             <?= $range['startFormatted']; ?> -
                             <?= $range['endFormatted']; ?>
                         <?php endforeach; ?>
