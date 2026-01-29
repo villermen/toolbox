@@ -6,8 +6,11 @@ $app = new \Villermen\Toolbox\App();
 ?>
 <?= $app->renderView('header.phtml', [
     'title' => 'Bingo Bongo',
-    'head' => '<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>',
-    'script' => $app->createPath('bingo/script.js'),
+    'script' => [
+        'https://cdn.jsdelivr.net/npm/jspdf@4.0.0/dist/jspdf.umd.js',
+        $app->createPath('bingo/fonts.js'),
+        $app->createPath('bingo/script.js'),
+    ],
 ]); ?>
 <div class="row">
     <div class="col-md-6">
@@ -34,6 +37,7 @@ $app = new \Villermen\Toolbox\App();
                 <label class="col-form-label col-4" for="fontSelect">Font</label>
                 <div class="col-8">
                     <select class="form-control" name="font" id="fontSelect">
+                        <option value="jumble">Jumble</option>
                         <option value="cabinsketch">Cabin Sketch Bold</option>
                     </select>
                 </div>

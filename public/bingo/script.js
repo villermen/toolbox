@@ -14,8 +14,6 @@ const previewEmbed = document.getElementById('previewEmbed');
 let backgroundImage = null;
 /** @type {HTMLImageElement|null} */
 let freeSpotImage = null;
-/** @type {string|null} */
-let font = null;
 
 let fallbackSeed = createRandomSeed();
 
@@ -51,33 +49,6 @@ function loadImage(file) {
 
 function unloadImage(image) {
     window.URL.revokeObjectURL(image.src);
-}
-
-/**
- * @param {string} fontName 
- * @returns {Promise<string>}
- */
-function loadFont(fontName) {
-    let fontFile = null;
-    switch (fontName) {
-        case 'cabinsketch':
-            fontFile = 'CabinSketch-Bold.ttf';
-            break;
-        default:
-            throw Error('Invalid font name specified!');
-    }
-
-    return new Promise((resolve, reject) => {
-        fetch(`./${fontFile}`).then((response) => {
-            response.blob().then((blob) => {
-                const fileReader = new FileReader();
-                fileReader.readAsDataURL(blob);
-                fileReader.onloadend = () => {
-                    resolve(fileReader.result.replace(/^data:font\/ttf;base64,/, ''));
-                }
-            });
-        });
-    });
 }
 
 /**
@@ -254,6 +225,7 @@ async function render() {
     const overlayEnabled = formData.get('overlayEnabled');
     const footerFormat = formData.get('footer');
     const pageSize = formData.get('pageSize');
+    const fontName = formData.get('font');
 
     optionCount.innerText = options.length;
 
@@ -274,7 +246,7 @@ async function render() {
             compress: true,
 
         });
-        pdf.addFileToVFS('bingo.ttf', font);
+        pdf.addFileToVFS('bingo.ttf', fonts[fontName]);
         pdf.addFont('bingo.ttf', 'bingo', '');
 
         const pageWidth = pdf.internal.pageSize.getWidth();
@@ -440,12 +412,8 @@ freeSpotImageInput.addEventListener('change', async () => {
     render();
 });
 fontSelect.addEventListener('change', async () => {
-    font = await loadFont(fontSelect.value);
     render();
 });
 
 // Initial render.
-loadFont(fontSelect.value).then((loadedFont) => {
-    font = loadedFont;
-    render();
-});
+render();

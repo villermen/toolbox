@@ -5,13 +5,14 @@
  * @var string|null $title
  * @var string|null $subtitle
  * @var string|null $head
- * @var string|null $script
+ * @var string|string[]|null $script
  */
 $icon = ($icon ?? null);
 $title = ($title ?? null);
 $subtitle = ($subtitle ?? null);
 $head = ($head ?? null);
-$script = ($script ?? null);
+$script = ($script ?? []);
+$script = is_string($script) ? [$script] : $script;
 
 $profile = $this->getAuthenticatedProfile();
 ?>
@@ -26,9 +27,9 @@ $profile = $this->getAuthenticatedProfile();
         <?php if ($head): ?>
             <?= $head; ?>
         <?php endif; ?>
-        <?php if ($script): ?>
-            <script src="<?= $script; ?>" defer></script>
-        <?php endif; ?>
+        <?php foreach ($script as $src): ?>
+            <script src="<?= $src; ?>" defer></script>
+        <?php endforeach; ?>
     </head>
     <body>
         <div class="container mt-5 mb-5">
