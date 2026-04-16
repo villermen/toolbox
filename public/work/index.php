@@ -279,7 +279,7 @@ if ($profile) {
                                     <div><?= $workday->getIncompleteRange()->getStart()->format('H:i'); ?></div>
                                 <?php endif; ?>
                                 <div>-</div>
-                                <input type="time" name="end" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;" required>
+                                <input type="time" name="end" class="form-control form-control-sm d-inline-block" style="flex: 1 0 40px;">
                                 <button type="submit" name="action" value="addRange" class="btn btn-primary btn-sm">Add</button>
                             </div>
                         </form>
