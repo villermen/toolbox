@@ -7,7 +7,7 @@
         }
     },
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "league/oauth2-client": "^2.8",
         "league/oauth2-google": "^4.0",
         "symfony/yaml": "^7.3",
