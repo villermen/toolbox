@@ -1,6 +1,6 @@
 const halfDistance = 21.0975;
 const marathonDistance = 42.195;
-const schoolSchootingConversionRate = 1.609344;
+const schoolShootingConversionRate = 1.609344;
 
 document.addEventListener('DOMContentLoaded', () => {
     const paceInput = document.querySelector('[name=pace]');
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isFinite(speed) && speed > 0.0) {
             const paceSeconds = Math.floor(3600.0 / speed);
-            const burgerKingPaceSeconds = Math.floor(3600.0 / (speed / schoolSchootingConversionRate));
+            const burgerKingPaceSeconds = Math.floor(3600.0 / (speed / schoolShootingConversionRate));
 
             paceFormatted = formatTime(paceSeconds);
             speedFormatted = String(Math.round(speed * 100.0) / 100.0);
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         update(3600 / parseTime(paceInput.value), paceInput);
     });
     burgerKingPaceInput.addEventListener('input', () => {
-        update(3600 / parseTime(burgerKingPaceInput.value) * schoolSchootingConversionRate, burgerKingPaceInput);
+        update(3600 / parseTime(burgerKingPaceInput.value) * schoolShootingConversionRate, burgerKingPaceInput);
     });
     fiveTimeInput.addEventListener('input', () => {
         update(3600 / (parseTime(fiveTimeInput.value) / 5.0), fiveTimeInput);
