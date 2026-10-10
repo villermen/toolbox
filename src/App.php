@@ -14,14 +14,13 @@ class App
 
     private ?Profile $authenticatedProfile = null;
 
-
     public function __construct()
     {
         chdir(__DIR__ . '/../');
 
         $this->config = Config::load();
         $this->session = Session::start($this->config);
-        $this->profileService = new ProfileService();
+        $this->profileService = new ProfileService($this->config);
         $this->authentication = new Authentication($this->config, $this->session, $this->profileService);
     }
 

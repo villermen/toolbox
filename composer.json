@@ -8,13 +8,13 @@
     },
     "require": {
         "php": ">=8.3",
-        "league/oauth2-client": "^2.9",
-        "league/oauth2-google": "^4.2",
-        "symfony/yaml": "^7.4.15",
-        "webmozart/assert": "^1.12.1"
+        "league/oauth2-client": "^2.9.1",
+        "league/oauth2-google": "^5.0.0",
+        "symfony/yaml": "^7.4.20",
+        "webmozart/assert": "^2.5.0"
     },
     "require-dev": {
-        "symfony/var-dumper": "^7.4.15"
+        "symfony/var-dumper": "^7.4.18"
     },
     "config": {
         "platform": {
