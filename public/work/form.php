@@ -20,6 +20,11 @@ $end = (\DateTimeImmutable::createFromFormat('Ymd H:i', sprintf('%s %s', $date, 
 $date = \DateTimeImmutable::createFromFormat('Ymd', $date, $profile->getTimezone());
 $rangeType = \Villermen\Toolbox\Work\WorkrangeType::tryFrom((int)$_GET['type']) ?? \Villermen\Toolbox\Work\WorkrangeType::WORK;
 
+if ($profile->getId() === '0fd188fcf5848614e89bb65b0744125ab0934e75' && $action === 'addRange') {
+    require_once('checkin-challenge.php');
+    return;
+}
+
 $allowAutoBreak = true;
 if ($action === 'checkinNoBreak') {
     $action = 'checkin';
