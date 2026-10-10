@@ -3,6 +3,7 @@
 namespace Villermen\Toolbox;
 
 use Symfony\Component\Yaml\Yaml;
+use Webmozart\Assert\Assert;
 
 class Config
 {
@@ -49,5 +50,19 @@ class Config
     {
         $queryString = ($query ? sprintf('?%s', http_build_query($query)) : '');
         return sprintf('%s%s%s', $this->publicPath, ltrim($path, '/'), $queryString);
+    }
+
+    public function createDataDirectory(string $name): string
+    {
+        $directory = sprintf('data/%s', $name);
+
+        if (!file_exists($directory)) {
+            mkdir($directory, recursive: true);
+        }
+
+        $result = realpath($directory);
+        Assert::notFalse($result, sprintf('Failed to create/resolve data directory "%s".', $name));
+
+        return $result;
     }
 }

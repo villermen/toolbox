@@ -7,9 +7,15 @@ use Villermen\Toolbox\Work\WorkrangeType;
 
 class ProfileService
 {
+    private const DATA_DIRECTORY = 'profiles';
+
+    public function __construct(private readonly Config $config)
+    {
+    }
+
     public function loadProfile(string $profileId): Profile
     {
-        $data = @file_get_contents(self::getPath($profileId));
+        $data = @file_get_contents($this->getProfileFile($profileId));
         $data = ($data ? json_decode($data, true) : null);
 
         $profile = new Profile(
@@ -91,13 +97,14 @@ class ProfileService
             ],
         ];
 
-        if (!file_put_contents(self::getPath($profile->getId()), json_encode($data))) {
+        if (!file_put_contents($this->getProfileFile($profile->getId()), json_encode($data))) {
             throw new \Exception('Failed to save profile data.');
         }
     }
 
-    private static function getPath(string $profileId): string
+    private function getProfileFile(string $profileId): string
     {
-        return sprintf('data/profile-%s.json', $profileId);
+        $directory = $this->config->createDataDirectory(self::DATA_DIRECTORY);
+        return sprintf('%s/profile-%s.json', $directory, $profileId);
     }
 }
